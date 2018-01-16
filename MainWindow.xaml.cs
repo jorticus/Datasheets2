@@ -25,16 +25,10 @@ namespace Datasheets2
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
         Database db;
-        //private DispatcherTimer treeScrollTimer;
-
         public Database Database { get { return db; } }
 
-        private string _filterText;
-        public string FilterText
-        {
-            get { return _filterText; }
-            set { _filterText = value; OnPropertyChanged("FilterText"); }
-        }
+        enum State { TreeView, Search };
+        State state = State.TreeView;
 
         public MainWindow()
         {
@@ -42,10 +36,6 @@ namespace Datasheets2
 
             db = new Database();
             this.DataContext = this;
-
-            //treeScrollTimer = new DispatcherTimer();
-            //treeScrollTimer.Interval = TimeSpan.FromMilliseconds(500);
-            //treeScrollTimer.Tick += scrollTimer_Callback;
 
             Loaded += MainWindow_Loaded;
             Closing += MainWindow_Closing;
@@ -56,7 +46,6 @@ namespace Datasheets2
             try
             {
                 await db.SaveAsync();
-                //this.database.Save();
             }
             catch (Exception ex)
             {
@@ -68,13 +57,13 @@ namespace Datasheets2
 
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            //this.tree.DataContext = db;
-            //this.DataContext = this;
-            //OnPropertyChanged("Database");
-            await db.LoadAsync(@"C:\Users\Jared\Documents\PDFs\Datasheets");
-            //OnPropertyChanged("Database");
-            
-            //this.database.Load();
+            // Not sure why I need this. Bindings don't update without setting it here...
+            // (Doesn't work if I set in the constructor)
+            this.tree.DataContext = this;
+
+            // TODO: Load from settings
+            var dir = System.IO.Directory.GetCurrentDirectory();
+            await db.LoadAsync(dir);
         }
 
         private void TextBox_KeyUp(object sender, KeyEventArgs e)
@@ -85,6 +74,30 @@ namespace Datasheets2
             }
         }
 
+        private void TextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            // If pressing down, shift focus to the first element in the tree view
+            if (e.Key == Key.Down)
+            {
+                tree.FocusAndSelectFirst();
+                e.Handled = true;
+            }
+        }
+        
+        private void DocumentTreeView_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            // If pressing up and selected item is 0, shift focus to the search box
+            if (e.Key == Key.Up)
+            {
+                if (tree.IsFirstItemSelected)
+                {
+                    txtSearchBox.Focus();
+                    e.Handled = true;
+                }
+            }
+        }
+
+
         private void Button_Click(object sender, RoutedEventArgs e)
         {
             Filter();
@@ -94,7 +107,6 @@ namespace Datasheets2
         {
 
         }
-
 
         #region INotifyPropertyChanged
 
@@ -107,127 +119,26 @@ namespace Datasheets2
 
         #endregion
 
-        private void tree_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+        private void btnSearch_Click(object sender, RoutedEventArgs e)
         {
-
-        }
-
-        private void tree_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-        {
-            // Handle double-click on tree view item
-            var treeViewItem = (sender as TreeViewItem);
-            if (treeViewItem != null && treeViewItem.IsSelected)
+            if (state == State.TreeView)
             {
-                var item = treeViewItem.DataContext as IItem;
-                if (item != null && item is Document)
-                    item.OpenItem();
-
-                // Prevent triggering child items
-                return;
+                btnSearch.Content = "Cancel";
+                txtSearchBox.IsEnabled = false;
+                state = State.Search;
+                search.Visibility = Visibility.Visible;
+                tree.Visibility = Visibility.Collapsed;
+                search.BeginSearch(txtSearchBox.Text);
             }
-        }
-
-        private void tree_KeyUp(object sender, KeyEventArgs e)
-        {
-            // Handle enter on tree view item
-            if (e.Key == Key.Enter)
+            else
             {
-                var item = (sender as TreeView)?.SelectedItem as IItem;
-                if (item != null)
-                    item.OpenItem();
+                btnSearch.Content = "Search";
+                txtSearchBox.IsEnabled = true;
+                state = State.TreeView;
+                search.CancelSearch();
+                tree.Visibility = Visibility.Visible;
+                search.Visibility = Visibility.Collapsed;
             }
-        }
-
-        private void TextBox_KeyDown(object sender, KeyEventArgs e)
-        {
-            // If pressing down, shift focus to the first element in the tree view
-            if (e.Key == Key.Down)
-            {
-                tree.Focus();
-
-                var firstItem = (TreeViewItem)tree.ItemContainerGenerator.ContainerFromIndex(0);
-                firstItem.IsSelected = true;
-                e.Handled = true;
-            }
-        }
-
-        private void tree_PreviewKeyDown(object sender, KeyEventArgs e)
-        {
-            // If pressing up and selected item is 0, shift focus to the search box
-            if (e.Key == Key.Up)
-            {
-                var currentItem = (TreeViewItem)tree.ItemContainerGenerator.ContainerFromItem(tree.SelectedItem);
-                var firstItem = (TreeViewItem)tree.ItemContainerGenerator.ContainerFromIndex(0);
-                if (currentItem == firstItem)
-                {
-                    txtSearchBox.Focus();
-                    e.Handled = true;
-                }
-            }
-        }
-
-        //private void scrollTimer_Callback(object sender, EventArgs e)
-        //{
-        //    var hit = (TreeViewItem)tree.ItemContainerGenerator.ContainerFromItem(tree.SelectedItem);
-        //    if (hit != null)
-        //    {
-        //        int idx = tree.ItemContainerGenerator.IndexFromContainer(hit);
-        //        if (idx > 0)
-        //            hit = (TreeViewItem)tree.ItemContainerGenerator.ContainerFromIndex(idx - 1);
-
-        //        if (hit != null)
-        //            hit.IsSelected = true;
-        //    }
-        //}
-
-        private void tree_MouseMove(object sender, MouseEventArgs e)
-        {
-            // Simulate behaviour of old Datasheets app where holding mouse button 
-            // in the list will keep selecting the item under the mouse as it moves.
-            // TODO: Doesn't work if mouse leaves the treeview area
-            if (e.LeftButton == MouseButtonState.Pressed)
-            {
-                var pos = e.GetPosition(tree);
-
-                // Find TreeViewItem under the cursor
-                var hit = tree.InputHitTest(pos) as DependencyObject;
-                while (!(hit is TreeViewItem) && hit != null)
-                {
-                    hit = VisualTreeHelper.GetParent(hit);
-                }
-
-                //if (pos.Y < 6)
-                //{
-                //    treeScrollTimer.Start();
-                //}
-                //else if (pos.Y > tree.Height - 6)
-                //{
-                //    // TODO
-                //}
-                //else
-                //{
-                //    treeScrollTimer.Stop();
-                //}
-
-                if (hit != null)
-                {
-                    ((TreeViewItem)hit).IsSelected = true;
-                }
-            }
-        }
-
-        private void tree_PreviewMouseUp(object sender, MouseButtonEventArgs e)
-        {
-            //if (e.LeftButton == MouseButtonState.Released)
-            //{
-            //    treeScrollTimer.Stop();
-            //}
-            //Mouse.Capture(null);
-        }
-
-        private void tree_PreviewMouseDown(object sender, MouseButtonEventArgs e)
-        {
-            //((IInputElement)sender).CaptureMouse();
         }
     }
 }

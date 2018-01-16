@@ -29,7 +29,7 @@ namespace Datasheets2
             ErrorHandler(e.Exception);
         }
 
-        public static void ErrorHandler(string message, string title = "Error")
+        public static void ErrorHandler(string message, string title = "Error", bool fatal = true)
         {
             // Prevent showing more than one dialog
             if (dialogLock.Wait(0))
@@ -37,7 +37,9 @@ namespace Datasheets2
                 try
                 {
                     MessageBox.Show(message, caption: title, button: MessageBoxButton.OK, icon: MessageBoxImage.Error);
-                    Application.Current.Shutdown();
+
+                    if (fatal)
+                        Application.Current.Shutdown();
                 }
                 finally
                 {
@@ -46,7 +48,7 @@ namespace Datasheets2
             }
         }
 
-        public static void ErrorHandler(Exception ex)
+        public static void ErrorHandler(Exception ex, bool fatal = true)
         {
             string exType = ex.GetType().Name;
 
@@ -68,7 +70,7 @@ namespace Datasheets2
                 message.AppendLine(String.Join("\n", stackTrace));
             }
            
-            ErrorHandler(message.ToString(), title: exType);
+            ErrorHandler(message.ToString(), title: exType, fatal: fatal);
         }
     }
 }
