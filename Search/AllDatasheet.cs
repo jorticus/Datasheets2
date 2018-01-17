@@ -16,6 +16,19 @@ namespace Datasheets2.Search
     {
         private const string ENDPOINT_QUERY = "http://www.alldatasheet.com/view.jsp?Searchword={0}";
 
+        public class AllDatasheetSearchResult : WebSearchItem
+        {
+            public CookieContainer CookieJar { get; set; }
+
+            public override async Task DownloadDatasheetAsync(string destpath, CancellationToken ct = default(CancellationToken))
+            {
+                // Use custom webrequest with previously captured cookies
+                using (var response = await ((AllDatasheet)Provider).WebRequestAsync(DatasheetUrl, CookieJar, ct))
+                {
+                    await WebUtil.SaveResponseToFileAsync(response, destpath);
+                }
+            }
+        }
 
         public async Task SearchAsync(string query, CancellationToken ct)
         {
@@ -33,6 +46,8 @@ namespace Datasheets2.Search
                 HtmlDocument html;
                 using (var response = await WebRequestAsync(uri, cookieJar, ct))
                     html = await WebUtil.HtmlFromWebResponseAsync(response, ct);
+
+                //WebUtil.CopyCookies(cookieJar, "www.alldatasheet.com", ".alldatasheet.com");
 
                 //There's no easy way to do this.
                 // First we look for the first table with class="main" and a header containing "Electronic Manufacturer"
@@ -69,14 +84,17 @@ namespace Datasheets2.Search
                         {
                             // Request URL of the actual PDF file
                             // TODO: Lazy load this on request to prevent spamming server
+                            //CookieContainer cookieJar2 = new CookieContainer();
                             var dsUri = await RequestDatasheetUri(itemUri, uri, ct, cookieJar);
                             if (dsUri != null)
                             {
-                                OnItemFound(new WebSearchItem
+                                OnItemFound(new AllDatasheetSearchResult
                                 {
                                     DatasheetUrl = dsUri,
                                     PartName = partNo,
-                                    Description = description
+                                    Description = description,
+                                    Provider = this,
+                                    CookieJar = cookieJar
                                 });
 
                                 // Limit to N valid results
@@ -130,6 +148,8 @@ namespace Datasheets2.Search
                     return uri;
             }*/
 
+            //WebUtil.CopyCookies(cookieJar, "www.alldatasheet.com", "pdf1.alldatasheet.com");
+
             // Instead of going through the download page, you can just modify the URL like so:
             uri = new Uri(uri.AbsoluteUri.Replace(
                 "www.alldatasheet.com/datasheet-pdf/pdf/", 
@@ -148,16 +168,15 @@ namespace Datasheets2.Search
                 if (!Uri.TryCreate(pdfsrc, UriKind.Relative, out pdfuri))
                     return uri;
 
-                Uri.TryCreate(uri, pdfuri, out uri);
-                return uri;
-            }
-        }
+                if (!Uri.TryCreate(uri, pdfuri, out pdfuri))
+                    return uri;
 
-        public async Task DownloadPdfAsync(ISearchResult item, string destpath, CancellationToken ct)
-        {
-            //var response = WebRequestAsync(item.DatasheetUrl, ct: ct);
-            // TODO: Save to file
-            throw new NotImplementedException();
+                // Copy cookies from the webpage to the eventual PDF page since otherwise it doesn't seem to get them.
+                // Not sure why I need to do this, probably a bug in the CookieContainer.
+                WebUtil.CopyCookies(cookieJar, uri, pdfuri);
+
+                return pdfuri;
+            }
         }
 
         private async Task<HttpWebResponse> WebRequestAsync(Uri uri, CookieContainer cookieJar = null, CancellationToken ct = default(CancellationToken), Uri referer = null)

@@ -81,7 +81,8 @@ namespace Datasheets2.Search
                                         DatasheetUrl = dsUri,
                                         PartName = partName,
                                         Description = description,
-                                        Manufacturer = manufacturer
+                                        Manufacturer = manufacturer,
+                                        Provider = this
                                     });
 
                                     // Limit to N valid results
@@ -139,11 +140,6 @@ namespace Datasheets2.Search
         private void OnItemFound(WebSearchItem item)
         {
             ItemFound?.Invoke(this, new ItemFoundEventArgs(item));
-        }
-
-        public Task DownloadPdfAsync(ISearchResult item, string destPath, CancellationToken ct)
-        {
-            throw new NotImplementedException();
         }
     }
 }

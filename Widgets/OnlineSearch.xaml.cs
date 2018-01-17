@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -167,5 +168,38 @@ namespace Datasheets2.Widgets
         }
 
         #endregion
+
+        private void list_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                var item = ((ListView)sender).SelectedItem as ISearchResult;
+                if (item != null)
+                {
+                    OpenDatasheet(item);
+                }
+            }
+        }
+
+        private void ListViewItem_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            var item = ((ListViewItem)sender).DataContext as ISearchResult;
+            if (item != null)
+            {
+                OpenDatasheet(item);
+            }
+        }
+
+        private async void OpenDatasheet(ISearchResult item)
+        {
+            var tempfilepath = System.IO.Path.ChangeExtension(System.IO.Path.GetTempFileName(), ".pdf");
+            await item.DownloadDatasheetAsync(tempfilepath);
+
+            // TODO: This is potentially dangerous as the file comes from the internet.
+            // What if the file is an exe??
+            Process.Start(tempfilepath);
+
+            // TODO: Should delete it
+        }
     }
 }

@@ -15,7 +15,7 @@ namespace Datasheets2
     {
         public const string FakeUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:57.0) Gecko/20100101 Firefox/57.0";
 
-        public static async Task<MemoryStream> RequestStreamAsync(Uri url, CancellationToken ct = default(CancellationToken), Dictionary<string, string> headers = null)
+        public static async Task<HttpWebResponse> WebRequestAsync(Uri url, CancellationToken ct = default(CancellationToken), Dictionary<string, string> headers = null)
         {
             Debug.WriteLine($"Fetch URL: {url}");
             var request = (HttpWebRequest)WebRequest.Create(url);
@@ -42,20 +42,21 @@ namespace Datasheets2
                 }
             }
 
-            using (WebResponse response = await request.GetResponseAsync())
-            {
-                return await MemoryStreamFromWebResponseAsync(response, ct);
-            }
+            return (HttpWebResponse)await request.GetResponseAsync();
         }
 
         public static async Task<byte[]> RequestBytesAsync(Uri url, CancellationToken ct = default(CancellationToken), Dictionary<string, string> headers = null)
         {
             const int MAX_RESPONSE_LENGTH = 10 * 1024 * 1024; // 10 MiB
-            var content = await RequestStreamAsync(url, ct, headers);
 
-            var buffer = new byte[Math.Min(content.Length, MAX_RESPONSE_LENGTH)];
-            int bytesRead = await content.ReadAsync(buffer, 0, buffer.Length, ct);
-            return buffer;
+            using (var response = await WebRequestAsync(url, ct, headers))
+            {
+                var content = await MemoryStreamFromWebResponseAsync(response, ct);
+
+                var buffer = new byte[Math.Min(content.Length, MAX_RESPONSE_LENGTH)];
+                int bytesRead = await content.ReadAsync(buffer, 0, buffer.Length, ct);
+                return buffer;
+            }
         }
 
         public static async Task<string> RequestStringAsync(Uri url, CancellationToken ct = default(CancellationToken), Dictionary<string, string> headers = null)
@@ -68,12 +69,15 @@ namespace Datasheets2
 
         public static async Task<HtmlDocument> RequestHtmlAsync(Uri url, CancellationToken ct = default(CancellationToken), Dictionary<string, string> headers = null)
         {
-            var content = await RequestStreamAsync(url, ct, headers);
+            using (var response = await WebRequestAsync(url, ct, headers))
+            {
+                var content = await MemoryStreamFromWebResponseAsync(response, ct);
 
-            var doc = new HtmlDocument();
-            doc.Load(content);
-            
-            return doc;
+                var doc = new HtmlDocument();
+                doc.Load(content);
+
+                return doc;
+            }
         }
 
 
@@ -97,6 +101,46 @@ namespace Datasheets2
             doc.Load(stream);
 
             return doc;
+        }
+
+
+        public static async Task SaveResponseToFileAsync(WebResponse response, string destpath, FileMode fileMode = FileMode.Create)
+        {
+            // TODO: Extension from content type?
+            using (var stream = response.GetResponseStream())
+            {
+                using (var filestream = new FileStream(destpath, fileMode))
+                {
+                    await stream.CopyToAsync(filestream);
+                }
+            }
+        }
+
+        public static void CopyCookies(CookieContainer cookies, Uri source, Uri dest)
+        {
+            //var newCookies = new CookieContainer();
+            foreach (Cookie cookie in cookies.GetCookies(source))
+            {
+                cookies.Add(dest, new Cookie
+                {
+                    Name = cookie.Name,
+                    Version = 0,
+                    Comment = cookie.Comment,
+                    CommentUri = cookie.CommentUri,
+                    Discard = cookie.Discard,
+                    //Domain = cookie.Domain,
+                    Domain = dest.Host,
+                    Expired = cookie.Expired,
+                    Expires = cookie.Expires,
+                    HttpOnly = cookie.HttpOnly,
+                    //Path = cookie.Path,
+                    Path = dest.LocalPath,
+                    Port = cookie.Port,
+                    Secure = cookie.Secure,
+                    Value = cookie.Value
+                });
+            }
+            //return newCookies;
         }
     }
 }
