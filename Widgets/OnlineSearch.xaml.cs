@@ -29,6 +29,7 @@ namespace Datasheets2.Widgets
     {
         private Task searchTask;
         private CancellationTokenSource cts;
+        private List<string> temporaryFiles;
 
         public OnlineSearch()
         {
@@ -36,9 +37,29 @@ namespace Datasheets2.Widgets
 
             this.DataContext = this;
 
+            temporaryFiles = new List<string>();
+
             Items = new ObservableCollection<ISearchResult>();
 
             Loaded += OnlineSearch_Loaded;
+            App.Current.Exit += Current_Exit;
+        }
+
+        private void Current_Exit(object sender, ExitEventArgs e)
+        {
+            // Attempt to clean up. 
+            // May not succeed if PDFs are still open
+            foreach (var tempfile in temporaryFiles)
+            {
+                try
+                {
+                    System.IO.File.Delete(tempfile);
+                }
+                catch
+                {
+                    Debug.WriteLine($"Could not delete temporary file '{tempfile}'");
+                }
+            }
         }
 
         private async Task SearchAsync(string query, CancellationToken ct)
@@ -46,8 +67,8 @@ namespace Datasheets2.Widgets
             // TODO: Try trust-worthy providers first, then fall back to lesser trust-worthy sites.
             var searchProviders = new List<Type>
             {
-                //typeof(Search.DatasheetCatalog),
-                typeof(Search.AllDatasheet),
+                typeof(Search.DatasheetCatalog),
+                //typeof(Search.AllDatasheet),
             };
 
             var tasks = new List<Task>();
@@ -192,14 +213,23 @@ namespace Datasheets2.Widgets
 
         private async void OpenDatasheet(ISearchResult item)
         {
-            var tempfilepath = System.IO.Path.ChangeExtension(System.IO.Path.GetTempFileName(), ".pdf");
-            await item.DownloadDatasheetAsync(tempfilepath);
+            // Create a new 0 byte temporary file placeholder
+            var tempfile = System.IO.Path.GetTempFileName();
 
-            // TODO: This is potentially dangerous as the file comes from the internet.
-            // What if the file is an exe??
-            Process.Start(tempfilepath);
+            // Download to temporary file
+            await item.DownloadDatasheetAsync(tempfile);
 
-            // TODO: Should delete it
+            // We know it should be a PDF, rename it
+            var pdffile = System.IO.Path.ChangeExtension(tempfile, ".pdf");
+            System.IO.File.Move(tempfile, pdffile);
+
+            // Keep track of it so we can delete it later
+            temporaryFiles.Add(pdffile);
+
+            // Shell open the file
+            // TODO: This may be potentially dangerous as the file comes from the internet.
+            // Windows SHOULD honour the .pdf extension and open in Adobe Reader or equivalent.
+            Process.Start(pdffile);
         }
     }
 }

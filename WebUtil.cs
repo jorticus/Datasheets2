@@ -15,10 +15,19 @@ namespace Datasheets2
     {
         public const string FakeUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:57.0) Gecko/20100101 Firefox/57.0";
 
-        public static async Task<HttpWebResponse> WebRequestAsync(Uri url, CancellationToken ct = default(CancellationToken), Dictionary<string, string> headers = null)
+        public static async Task<HttpWebResponse> WebRequestAsync(
+            Uri url, 
+            CancellationToken ct = default(CancellationToken), 
+            Dictionary<string, string> headers = null, 
+            CookieContainer cookieJar = null)
         {
             Debug.WriteLine($"Fetch URL: {url}");
             var request = (HttpWebRequest)WebRequest.Create(url);
+
+            if (cookieJar != null)
+                request.CookieContainer = cookieJar;
+
+            request.UserAgent = WebUtil.FakeUserAgent;
 
             // Apply headers
             if (headers != null)
@@ -29,6 +38,14 @@ namespace Datasheets2
                     {
                         case "Referer":
                             request.Referer = header.Value;
+                            break;
+
+                        case "Accept":
+                            request.Accept = header.Value;
+                            break;
+
+                        case "UserAgent":
+                            request.UserAgent = header.Value;
                             break;
 
                         default:
@@ -104,6 +121,13 @@ namespace Datasheets2
         }
 
 
+        /// <summary>
+        /// Save web response to a file
+        /// </summary>
+        /// <param name="response"></param>
+        /// <param name="destpath"></param>
+        /// <param name="fileMode"></param>
+        /// <returns></returns>
         public static async Task SaveResponseToFileAsync(WebResponse response, string destpath, FileMode fileMode = FileMode.Create)
         {
             // TODO: Extension from content type?
@@ -116,9 +140,16 @@ namespace Datasheets2
             }
         }
 
+        /// <summary>
+        /// Copy cookies from one URL to another.
+        /// Required as a work-around for CookieContainer's weird behaviour.
+        /// Also sets Version=0 as recommended by various forum posts
+        /// </summary>
+        /// <param name="cookies"></param>
+        /// <param name="source"></param>
+        /// <param name="dest"></param>
         public static void CopyCookies(CookieContainer cookies, Uri source, Uri dest)
         {
-            //var newCookies = new CookieContainer();
             foreach (Cookie cookie in cookies.GetCookies(source))
             {
                 cookies.Add(dest, new Cookie
@@ -140,7 +171,6 @@ namespace Datasheets2
                     Value = cookie.Value
                 });
             }
-            //return newCookies;
         }
     }
 }

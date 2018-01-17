@@ -14,10 +14,25 @@ namespace Datasheets2.Search
 {
     /// <summary>
     /// http://datasheetcatalog.net Datasheet Search
+    /// This website adds an extra page to the end of the PDF file, containing a link back to the site.
     /// </summary>
     public class DatasheetCatalog : ISearchProvider
     {
         private const string ENDPOINT_QUERY = "http://search.datasheetcatalog.net/key/{0}";
+
+        protected class DatasheetCatalogSearchResult : WebSearchItem
+        {
+            public override async Task DownloadDatasheetAsync(string destpath, CancellationToken ct = default(CancellationToken))
+            {
+                var cookies = new CookieContainer();
+                cookies.Add(DatasheetUrl, new Cookie("fromsite", "true")); // heh.
+
+                using (var response = await WebUtil.WebRequestAsync(DatasheetUrl, ct, cookieJar: cookies))
+                {
+                    await WebUtil.SaveResponseToFileAsync(response, destpath);
+                }
+            }
+        }
 
         public async Task SearchAsync(string query, CancellationToken ct)
         {
@@ -76,7 +91,7 @@ namespace Datasheets2.Search
                                 var dsUri = await RequestDatasheetUri(itemUri, ct);
                                 if (dsUri != null)
                                 {
-                                    OnItemFound(new WebSearchItem
+                                    OnItemFound(new DatasheetCatalogSearchResult
                                     {
                                         DatasheetUrl = dsUri,
                                         PartName = partName,

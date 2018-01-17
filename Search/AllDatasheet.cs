@@ -12,11 +12,15 @@ using System.Threading.Tasks;
 
 namespace Datasheets2.Search
 {
+    /// <summary>
+    /// http://alldatasheet.com Datasheet Search
+    /// This website modifies the PDF title to contain "ALLDATASHEET"
+    /// </summary>
     public class AllDatasheet : ISearchProvider
     {
         private const string ENDPOINT_QUERY = "http://www.alldatasheet.com/view.jsp?Searchword={0}";
 
-        public class AllDatasheetSearchResult : WebSearchItem
+        protected class AllDatasheetSearchResult : WebSearchItem
         {
             public CookieContainer CookieJar { get; set; }
 
@@ -179,18 +183,17 @@ namespace Datasheets2.Search
             }
         }
 
-        private async Task<HttpWebResponse> WebRequestAsync(Uri uri, CookieContainer cookieJar = null, CancellationToken ct = default(CancellationToken), Uri referer = null)
+        private Task<HttpWebResponse> WebRequestAsync(Uri uri, CookieContainer cookieJar = null, CancellationToken ct = default(CancellationToken), Uri referer = null)
         {
-            var request = WebRequest.CreateHttp(uri);
-            request.CookieContainer = cookieJar;
+            var headers = new Dictionary<string, string>();
 
+            headers["Accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8";
+
+            // Not sure if required
             if (referer != null)
-                request.Referer = referer.AbsoluteUri;
+                headers["Referer"] = referer.AbsoluteUri;
 
-            request.UserAgent = WebUtil.FakeUserAgent;
-            request.Accept = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8";
-
-            return (HttpWebResponse)await request.GetResponseAsync();
+            return WebUtil.WebRequestAsync(uri, ct, headers, cookieJar);
         }
 
 
