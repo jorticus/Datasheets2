@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Datasheets2.Widgets"
              xmlns:models="clr-namespace:Datasheets2.Models"
+             xmlns:search="clr-namespace:Datasheets2.Search"
              mc:Ignorable="d" 
              DataContext="{Binding RelativeSource={RelativeSource Self}}"
              d:DesignHeight="300" d:DesignWidth="300">
@@ -28,8 +29,8 @@
             ItemsSource="{Binding Items}">
             <ListView.ItemTemplate>
                 <DataTemplate
-                    DataType="{x:Type models:WebSearchItem}">
-                    <Grid>
+                    DataType="{x:Type search:ISearchResult}">
+                    <Grid ToolTip="{Binding Description}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
@@ -38,8 +39,11 @@
                         <TextBlock
                             Grid.Column="1"
                             VerticalAlignment="Center"
-                            ToolTip="{Binding Url}"
-                            Text="{Binding Label}"/>
+                            Text="{Binding PartName}"/>
+                        <TextBlock
+                            Grid.Column="2"
+                            VerticalAlignment="Center"
+                            Text="{Binding Manufacturer}"/>
                     </Grid>
                 </DataTemplate>
             </ListView.ItemTemplate>

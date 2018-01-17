@@ -68,8 +68,13 @@ namespace Datasheets2
 
         private void TextBox_KeyUp(object sender, KeyEventArgs e)
         {
-            //if (e.Key == Key.Enter)
+            if (e.Key == Key.Enter)
             {
+                StartSearch();
+            }
+            else
+            {
+                // Update filter on every keypress
                 Filter();
             }
         }
@@ -123,22 +128,32 @@ namespace Datasheets2
         {
             if (state == State.TreeView)
             {
-                btnSearch.Content = "Cancel";
-                txtSearchBox.IsEnabled = false;
-                state = State.Search;
-                search.Visibility = Visibility.Visible;
-                tree.Visibility = Visibility.Collapsed;
-                search.BeginSearch(txtSearchBox.Text);
+                StartSearch();
             }
             else
             {
-                btnSearch.Content = "Search";
-                txtSearchBox.IsEnabled = true;
-                state = State.TreeView;
-                search.CancelSearch();
-                tree.Visibility = Visibility.Visible;
-                search.Visibility = Visibility.Collapsed;
+                CancelSearch();
             }
+        }
+
+        private void StartSearch()
+        {
+            btnSearch.Content = "Cancel";
+            txtSearchBox.IsEnabled = false;
+            state = State.Search;
+            search.Visibility = Visibility.Visible;
+            tree.Visibility = Visibility.Collapsed;
+            search.BeginSearch(txtSearchBox.Text);
+        }
+
+        private void CancelSearch()
+        {
+            btnSearch.Content = "Search";
+            txtSearchBox.IsEnabled = true;
+            state = State.TreeView;
+            search.CancelSearch();
+            tree.Visibility = Visibility.Visible;
+            search.Visibility = Visibility.Collapsed;
         }
     }
 }

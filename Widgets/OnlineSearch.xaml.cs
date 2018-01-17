@@ -35,16 +35,18 @@ namespace Datasheets2.Widgets
 
             this.DataContext = this;
 
-            Items = new ObservableCollection<WebSearchItem>();
+            Items = new ObservableCollection<ISearchResult>();
 
             Loaded += OnlineSearch_Loaded;
         }
 
         private async Task SearchAsync(string query, CancellationToken ct)
         {
+            // TODO: Try trust-worthy providers first, then fall back to lesser trust-worthy sites.
             var searchProviders = new List<Type>
             {
-                typeof(Search.DatasheetCatalog),
+                //typeof(Search.DatasheetCatalog),
+                typeof(Search.AllDatasheet),
             };
 
             var tasks = new List<Task>();
@@ -143,8 +145,8 @@ namespace Datasheets2.Widgets
             }
         }
 
-        private IList<WebSearchItem> _items;
-        protected IList<WebSearchItem> Items
+        private IList<ISearchResult> _items;
+        protected IList<ISearchResult> Items
         {
             get { return _items; }
             set

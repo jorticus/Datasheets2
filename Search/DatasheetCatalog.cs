@@ -78,8 +78,8 @@ namespace Datasheets2.Search
                                 {
                                     OnItemFound(new WebSearchItem
                                     {
-                                        Url = dsUri,
-                                        Label = partName,
+                                        DatasheetUrl = dsUri,
+                                        PartName = partName,
                                         Description = description,
                                         Manufacturer = manufacturer
                                     });
@@ -139,6 +139,11 @@ namespace Datasheets2.Search
         private void OnItemFound(WebSearchItem item)
         {
             ItemFound?.Invoke(this, new ItemFoundEventArgs(item));
+        }
+
+        public Task DownloadPdfAsync(ISearchResult item, string destPath, CancellationToken ct)
+        {
+            throw new NotImplementedException();
         }
     }
 }

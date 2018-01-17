@@ -13,11 +13,11 @@ namespace Datasheets2
 {
     public static class WebUtil
     {
-        public static async Task<MemoryStream> RequestStreamAsync(Uri url, CancellationToken ct, Dictionary<string, string> headers = null)
+        public const string FakeUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:57.0) Gecko/20100101 Firefox/57.0";
+
+        public static async Task<MemoryStream> RequestStreamAsync(Uri url, CancellationToken ct = default(CancellationToken), Dictionary<string, string> headers = null)
         {
             Debug.WriteLine($"Fetch URL: {url}");
-
-            var content = new MemoryStream();
             var request = (HttpWebRequest)WebRequest.Create(url);
 
             // Apply headers
@@ -44,17 +44,11 @@ namespace Datasheets2
 
             using (WebResponse response = await request.GetResponseAsync())
             {
-                using (var responseStream = response.GetResponseStream())
-                {
-                    await responseStream.CopyToAsync(content);
-                }
+                return await MemoryStreamFromWebResponseAsync(response, ct);
             }
-
-            content.Seek(0, SeekOrigin.Begin);
-            return content;
         }
 
-        public static async Task<byte[]> RequestBytesAsync(Uri url, CancellationToken ct, Dictionary<string, string> headers = null)
+        public static async Task<byte[]> RequestBytesAsync(Uri url, CancellationToken ct = default(CancellationToken), Dictionary<string, string> headers = null)
         {
             const int MAX_RESPONSE_LENGTH = 10 * 1024 * 1024; // 10 MiB
             var content = await RequestStreamAsync(url, ct, headers);
@@ -64,23 +58,44 @@ namespace Datasheets2
             return buffer;
         }
 
-        public static async Task<string> RequestStringAsync(Uri url, CancellationToken ct, Dictionary<string, string> headers = null)
+        public static async Task<string> RequestStringAsync(Uri url, CancellationToken ct = default(CancellationToken), Dictionary<string, string> headers = null)
         {
             var bytes = await RequestBytesAsync(url, ct, headers);
             // TODO: Detect encoding from response
             //return Encoding.ASCII.GetString(bytes);
             return Encoding.UTF8.GetString(bytes);
-
-
         }
 
-        public static async Task<HtmlDocument> RequestHtmlAsync(Uri url, CancellationToken ct, Dictionary<string, string> headers = null)
+        public static async Task<HtmlDocument> RequestHtmlAsync(Uri url, CancellationToken ct = default(CancellationToken), Dictionary<string, string> headers = null)
         {
             var content = await RequestStreamAsync(url, ct, headers);
 
             var doc = new HtmlDocument();
             doc.Load(content);
             
+            return doc;
+        }
+
+
+        public static async Task<MemoryStream> MemoryStreamFromWebResponseAsync(WebResponse response, CancellationToken ct = default(CancellationToken))
+        {
+            var content = new MemoryStream();
+            using (var responseStream = response.GetResponseStream())
+            {
+                await responseStream.CopyToAsync(content);
+            }
+
+            content.Seek(0, SeekOrigin.Begin);
+            return content;
+        }
+
+        public static async Task<HtmlDocument> HtmlFromWebResponseAsync(WebResponse response, CancellationToken ct = default(CancellationToken))
+        {
+            var stream = await MemoryStreamFromWebResponseAsync(response, ct);
+
+            var doc = new HtmlDocument();
+            doc.Load(stream);
+
             return doc;
         }
     }

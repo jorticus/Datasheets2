@@ -61,6 +61,7 @@
     <Compile Include="Models\Tag.cs" />
     <Compile Include="IconUtil.cs" />
     <Compile Include="Models\WebSearchItem.cs" />
+    <Compile Include="Search\AllDatasheet.cs" />
     <Compile Include="Search\DatasheetCatalog.cs" />
     <Compile Include="Search\ISearchProvider.cs" />
     <Compile Include="WebUtil.cs" />
