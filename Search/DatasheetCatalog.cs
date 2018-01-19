@@ -1,4 +1,5 @@
 ﻿using Datasheets2.Models;
+using HtmlAgilityPack;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -19,6 +20,8 @@ namespace Datasheets2.Search
     public class DatasheetCatalog : ISearchProvider
     {
         private const string ENDPOINT_QUERY = "http://search.datasheetcatalog.net/key/{0}";
+
+        public string Name { get { return "DatasheetCatalog.net"; } }
 
         protected class DatasheetCatalogSearchResult : WebSearchItem
         {
@@ -63,10 +66,10 @@ namespace Datasheets2.Search
                     int count = 0;
                     foreach (var row in table.Skip(1))
                     {
-                        var n = row.SelectSingleNode("td[1]")?.InnerText;
-                        var partName = row.SelectSingleNode("td[2]")?.InnerText;
-                        var description = row.SelectSingleNode("td[3]")?.InnerText;
-                        var manufacturer = row.SelectSingleNode("td[4]")?.InnerText;
+                        var n = HtmlEntity.DeEntitize(row.SelectSingleNode("td[1]")?.InnerText);
+                        var partName = HtmlEntity.DeEntitize(row.SelectSingleNode("td[2]")?.InnerText);
+                        var description = HtmlEntity.DeEntitize(row.SelectSingleNode("td[3]")?.InnerText);
+                        var manufacturer = HtmlEntity.DeEntitize(row.SelectSingleNode("td[4]")?.InnerText);
                         var url = row.SelectSingleNode("td[2]/a")?.Attributes["href"]?.Value;
 
                         Debug.WriteLine($"DatasheetCatalog: {n}, {partName}, {description}, {manufacturer}, {url}");

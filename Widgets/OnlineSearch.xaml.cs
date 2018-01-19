@@ -45,6 +45,20 @@ namespace Datasheets2.Widgets
             App.Current.Exit += Current_Exit;
         }
 
+        #region Properties
+
+        public static readonly DependencyProperty ItemsProperty =
+            DependencyProperty.Register("Items", typeof(IList<ISearchResult>), typeof(OnlineSearch),
+                new PropertyMetadata(null));
+
+        public IList<ISearchResult> Items
+        {
+            get { return (IList<ISearchResult>)GetValue(ItemsProperty); }
+            set { SetValue(ItemsProperty, value); }
+        }
+
+        #endregion
+
         private void Current_Exit(object sender, ExitEventArgs e)
         {
             // Attempt to clean up. 
@@ -64,26 +78,27 @@ namespace Datasheets2.Widgets
 
         private async Task SearchAsync(string query, CancellationToken ct)
         {
-            // TODO: Try trust-worthy providers first, then fall back to lesser trust-worthy sites.
-            var searchProviders = new List<Type>
-            {
-                typeof(Search.DatasheetCatalog),
-                //typeof(Search.AllDatasheet),
-            };
-
-            var tasks = new List<Task>();
-            foreach (Type providerType in searchProviders)
-            {
-                ISearchProvider provider = (ISearchProvider)Activator.CreateInstance(providerType);
-                provider.ItemFound += Provider_ItemFound;
-
-                var task = provider.SearchAsync(query, ct);
-                tasks.Add(task);
-            }
-
-            searchTask = Task.WhenAll(tasks);
             try
             {
+                // TODO: Try trust-worthy providers first, then fall back to lesser trust-worthy sites.
+                var searchProviders = new List<Type>
+                {
+                    typeof(Search.DatasheetCatalog),
+                    typeof(Search.AllDatasheet),
+                };
+
+                var tasks = new List<Task>();
+                foreach (Type providerType in searchProviders)
+                {
+                    ISearchProvider provider = (ISearchProvider)Activator.CreateInstance(providerType);
+                    provider.ItemFound += Provider_ItemFound;
+
+                    var task = provider.SearchAsync(query, ct);
+                    tasks.Add(task);
+                }
+
+                searchTask = Task.WhenAll(tasks);
+
                 await searchTask;
             }
             catch (TaskCanceledException)
@@ -164,18 +179,6 @@ namespace Datasheets2.Widgets
             {
                 _isSearching = value;
                 progressBar.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
-            }
-        }
-
-        private IList<ISearchResult> _items;
-        protected IList<ISearchResult> Items
-        {
-            get { return _items; }
-            set
-            {
-                _items = value;
-                OnPropertyChanged("Items");
-                list.ItemsSource = value; // TODO: Why is this required? Why do bindings not just work??
             }
         }
 

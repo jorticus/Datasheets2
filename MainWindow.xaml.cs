@@ -64,6 +64,8 @@ namespace Datasheets2
             // TODO: Load from settings
             var dir = System.IO.Directory.GetCurrentDirectory();
             await db.LoadAsync(dir);
+
+            txtSearchBox.Focus();
         }
 
         private void TextBox_KeyUp(object sender, KeyEventArgs e)

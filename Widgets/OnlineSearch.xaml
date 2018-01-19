@@ -3,56 +3,88 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
              xmlns:local="clr-namespace:Datasheets2.Widgets"
              xmlns:models="clr-namespace:Datasheets2.Models"
              xmlns:search="clr-namespace:Datasheets2.Search"
              mc:Ignorable="d" 
              DataContext="{Binding RelativeSource={RelativeSource Self}}"
              d:DesignHeight="300" d:DesignWidth="300">
+    <UserControl.Resources>
+        <CollectionViewSource
+            x:Key="listviewsrc"
+            Source="{Binding Items}">
+            <CollectionViewSource.GroupDescriptions>
+                <PropertyGroupDescription PropertyName="Provider.Name"/>
+            </CollectionViewSource.GroupDescriptions>
+        </CollectionViewSource>
+    </UserControl.Resources>
     <Grid VerticalAlignment="Stretch">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <ProgressBar
-            x:Name="progressBar"
-            Grid.Row="0"
-            Height="16" IsIndeterminate="True" Margin="-1,0"/>
         <ListView
             x:Name="list"
             Background="Transparent"
-            Grid.Row="1"
+            Grid.Row="0"
             VerticalAlignment="Stretch"
             BorderThickness="0"
-            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-            ScrollViewer.VerticalScrollBarVisibility="Visible"
+            ScrollViewer.HorizontalScrollBarVisibility="Auto"
+            ScrollViewer.VerticalScrollBarVisibility="Auto"
             KeyUp="list_KeyUp"
-            ItemsSource="{Binding Items}">
-            <ListView.ItemTemplate>
-                <DataTemplate
-                    DataType="{x:Type search:ISearchResult}">
-                    <Grid ToolTip="{Binding Description}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock
-                            Grid.Column="1"
-                            VerticalAlignment="Center"
-                            Text="{Binding PartName}"/>
-                        <TextBlock
-                            Grid.Column="2"
-                            VerticalAlignment="Center"
-                            Text="{Binding Manufacturer}"/>
-                    </Grid>
-                </DataTemplate>
-            </ListView.ItemTemplate>
+            ItemsSource="{Binding Source={StaticResource listviewsrc}}">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn 
+                        Header="Part No" 
+                        Width="160"
+                        DisplayMemberBinding="{Binding PartName}"/>
+                    <GridViewColumn 
+                        Header="Description" 
+                        Width="250"
+                        DisplayMemberBinding="{Binding Description}"/>
+                    <GridViewColumn 
+                        Header="Manufacturer" 
+                        DisplayMemberBinding="{Binding Manufacturer}"/>
+                </GridView>
+            </ListView.View>
+            <ListView.GroupStyle>
+                <GroupStyle>
+                    <GroupStyle.ContainerStyle>
+                        <Style TargetType="{x:Type GroupItem}">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate>
+                                        <Expander IsExpanded="True" >
+                                            <Expander.Header>
+                                                <TextBlock Text="{Binding Name}"/>
+                                            </Expander.Header>
+                                            <ItemsPresenter/>
+                                        </Expander>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </GroupStyle.ContainerStyle>
+                </GroupStyle>
+            </ListView.GroupStyle>
             <ListView.ItemContainerStyle>
                 <Style TargetType="{x:Type ListViewItem}">
                     <EventSetter Event="MouseDoubleClick" Handler="ListViewItem_MouseDoubleClick"/>
                 </Style>
             </ListView.ItemContainerStyle>
+            <!--<ListView.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Open PDF"/>
+                    <MenuItem Header="Open Webpage"/>
+                </ContextMenu>
+            </ListView.ContextMenu>-->
         </ListView>
+        <ProgressBar
+            x:Name="progressBar"
+            Grid.Row="1"
+            Height="16" Margin="-1,0"
+            IsIndeterminate="True"/>
     </Grid>
 </UserControl>

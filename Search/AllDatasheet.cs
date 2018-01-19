@@ -20,6 +20,8 @@ namespace Datasheets2.Search
     {
         private const string ENDPOINT_QUERY = "http://www.alldatasheet.com/view.jsp?Searchword={0}";
 
+        public string Name { get { return "AllDatasheet.com"; } }
+
         protected class AllDatasheetSearchResult : WebSearchItem
         {
             public CookieContainer CookieJar { get; set; }
@@ -70,13 +72,13 @@ namespace Datasheets2.Search
                 {
                     // Since some rows have an image with a rowspan, we search for all td's containing an <a href=""><b>text</b></a> sequence:
                     var partElem = row.SelectSingleNode("td/a/b/..");
-                    var partNo = partElem?.InnerText?.Trim();
+                    var partNo = HtmlEntity.DeEntitize(partElem?.InnerText)?.Trim();
                     var href = partElem?.Attributes["href"]?.Value;
                     
                     // The description is the last column
-                    var description = row.SelectNodes("td")?.LastOrDefault()?.InnerText;
+                    var description = HtmlEntity.DeEntitize(row.SelectNodes("td")?.LastOrDefault()?.InnerText)?.Trim();
 
-                    Debug.WriteLine($"AllDatasheet: {partNo}, {href}");
+                    Debug.WriteLine($"AllDatasheet: {partNo}, {href}, {description}");
 
                     Uri itemUri = null;
                     Uri.TryCreate(href, UriKind.Absolute, out itemUri);

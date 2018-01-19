@@ -30,6 +30,8 @@ namespace Datasheets2.Search
 
     public interface ISearchProvider
     {
+        string Name { get; }
+
         /// <summary>
         /// Begin a search using the search provider
         /// </summary>
