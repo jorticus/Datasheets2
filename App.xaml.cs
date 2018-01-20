@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Datasheets2.Models;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
@@ -18,10 +19,19 @@ namespace Datasheets2
         const int MAX_STACKTRACE = 2;
         static SemaphoreSlim dialogLock = new SemaphoreSlim(1);
 
+        public static new App Current { get { return (App)Application.Current; } }
+
+        Database db;
+        public Database Database { get { return db; } }
+
+        // TODO: Load from settings
+        // Just use current working directory for now.
+        public string DocumentsDir { get { return System.IO.Directory.GetCurrentDirectory(); } }
+
         public App()
         {
             this.DispatcherUnhandledException += App_DispatcherUnhandledException;
-            
+            db = new Database();
         }
 
         private void App_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)

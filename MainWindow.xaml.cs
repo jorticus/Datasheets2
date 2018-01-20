@@ -27,10 +27,7 @@ namespace Datasheets2
         //private string[] SUPPORTED_FILE_EXTS = { ".pdf", ".doc", ".docx" };
         private string[] SUPPORTED_FILE_EXTS = null; // Support all filetypes
 
-        Database db;
-        public Database Database { get { return db; } }
-
-        public string DocumentsDir { get { return System.IO.Directory.GetCurrentDirectory(); } }
+        public Database Database { get { return App.Current.Database; } }
 
         enum State { TreeView, Search };
         State state = State.TreeView;
@@ -38,9 +35,18 @@ namespace Datasheets2
         public MainWindow()
         {
             InitializeComponent();
-
-            db = new Database();
+ 
             this.DataContext = this;
+
+            // Set up ESC key command
+            // (Won't activate if a ContextMenu was closed via ESC)
+            var command = new RoutedUICommand(
+                "EscBtnCommand", "EscBtnCommand", typeof(MainWindow),
+                new InputGestureCollection { new KeyGesture(Key.Escape, ModifierKeys.None, "Close") });
+            CommandBindings.Add(new CommandBinding(command, (sender, e) =>
+            {
+                this.Close();
+            }));
 
             Loaded += MainWindow_Loaded;
             Closing += MainWindow_Closing;
@@ -50,7 +56,7 @@ namespace Datasheets2
         {
             try
             {
-                await db.SaveAsync();
+                await Database.SaveAsync();
             }
             catch (Exception ex)
             {
@@ -66,8 +72,7 @@ namespace Datasheets2
             // (Doesn't work if I set in the constructor)
             this.tree.DataContext = this;
 
-            // TODO: Load from settings
-            await db.LoadAsync(DocumentsDir);
+            await Database.LoadAsync(App.Current.DocumentsDir);
 
             txtSearchBox.Focus();
         }
@@ -175,7 +180,7 @@ namespace Datasheets2
             if (srcfiles.Length == 0)
                 return;
 
-            var destdir = DocumentsDir;
+            var destdir = App.Current.DocumentsDir;
 
             switch (operation)
             {
@@ -228,12 +233,12 @@ namespace Datasheets2
                     if (copyAllowed && ctrlPressed)
                     {
                         operation = DragDropEffects.Copy;
-                        dropText.Text = $"Copy {desc} to {DocumentsDir}";
+                        dropText.Text = $"Copy {desc} to {App.Current.DocumentsDir}";
                     }
                     else if (moveAllowed)
                     {
                         operation = DragDropEffects.Move;
-                        dropText.Text = $"Move {desc} to {DocumentsDir}";
+                        dropText.Text = $"Move {desc} to {App.Current.DocumentsDir}";
                     }
                 }
             }

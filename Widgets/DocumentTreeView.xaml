@@ -3,12 +3,41 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
              xmlns:local="clr-namespace:Datasheets2.Widgets"
              xmlns:models="clr-namespace:Datasheets2.Models"
              mc:Ignorable="d"
              DataContext="{Binding RelativeSource={RelativeSource Self}}"
-             x:Name="root">
+             x:Name="root"
+             d:DesignHeight="300" d:DesignWidth="300">
     <UserControl.Resources>
+
+        <Style x:Key="DefaultMenuItemStyle" TargetType="{x:Type MenuItem}">
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+
+        <!-- Common Context Menu -->
+        <x:Array Type="{x:Type sys:Object}" x:Shared="False" x:Key="commonMenuItems">
+            <MenuItem Header="_Settings"  PreviewKeyUp="ContextMenu_KeyUp"/>
+            <MenuItem Header="Open _Library" Click="miOpenFolder_Activate"  PreviewKeyUp="ContextMenu_KeyUp"/>
+        </x:Array>
+        <ContextMenu x:Key="MainContextMenu" ItemsSource="{StaticResource commonMenuItems}" PreviewKeyUp="ContextMenu_KeyUp"/>
+        
+        <!-- Per-item Context Menu -->
+        <x:Array Type="{x:Type sys:Object}" x:Key="itemMenuItems">
+            <MenuItem Header="_Open" Command="{Binding OpenCommand}" Style="{StaticResource DefaultMenuItemStyle}"/>
+        </x:Array>
+        <ContextMenu x:Key="TreeViewItemContextMenu" 
+            DataContext="{Binding Path=DataContext, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ContextMenu}}}">
+            <ContextMenu.ItemsSource>
+                <CompositeCollection>
+                    <CollectionContainer Collection="{StaticResource itemMenuItems}"/>
+                    <Separator/>
+                    <CollectionContainer Collection="{StaticResource commonMenuItems}"/>
+                </CompositeCollection>
+            </ContextMenu.ItemsSource>
+        </ContextMenu>
+
         <!-- 
         Override TreeView so items stretch to the whole width.
         The only change is on <Border x:Name="Bd"...> to set Grid.ColumnSpan="2"
@@ -75,24 +104,28 @@
     </UserControl.Resources>
     <Grid>
         <TreeView x:Name="tree" 
-                Background="Transparent" 
-                HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-                HorizontalContentAlignment="Stretch"
-                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                ScrollViewer.VerticalScrollBarVisibility="Visible"
-                Padding="0,4" BorderBrush="Transparent" BorderThickness="0"
-                KeyUp="tree_KeyUp"
-                PreviewMouseMove="tree_MouseMove"
-                PreviewMouseDown="tree_PreviewMouseDown"
-                PreviewMouseUp="tree_PreviewMouseUp"     
-                VirtualizingPanel.IsVirtualizing="True"
-                ItemsSource="{Binding Database.Items}">
+            Background="Transparent" 
+            HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+            HorizontalContentAlignment="Stretch"
+            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+            ScrollViewer.VerticalScrollBarVisibility="Visible"
+            Padding="0,4" BorderBrush="Transparent" BorderThickness="0"
+            KeyUp="tree_KeyUp"
+            PreviewMouseMove="tree_MouseMove"
+            PreviewMouseDown="tree_PreviewMouseDown"
+            PreviewMouseUp="tree_PreviewMouseUp"     
+            VirtualizingPanel.IsVirtualizing="True"
+            ContextMenu="{StaticResource MainContextMenu}"
+            ItemsSource="{Binding Database.Items}">
             <TreeView.ItemsPanel>
                 <ItemsPanelTemplate>
                     <VirtualizingStackPanel/>
                 </ItemsPanelTemplate>
             </TreeView.ItemsPanel>
             <TreeView.ItemTemplate>
+                <!--
+                Custom TreeView item template
+                -->
                 <HierarchicalDataTemplate 
                         ItemsSource="{Binding Items, UpdateSourceTrigger=PropertyChanged}"
                         DataType="{x:Type models:IItem}">
@@ -133,8 +166,8 @@
                                             <SolidColorBrush Color="{Binding Color}"/>
                                         </Border.Background>
                                         <TextBlock
-                                                Padding="4,0"
-                                                Text="{Binding Label}"/>
+                                            Padding="4,0"
+                                            Text="{Binding Label}"/>
                                     </Border>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
@@ -144,14 +177,19 @@
             </TreeView.ItemTemplate>
             <TreeView.ItemContainerStyle>
                 <Style TargetType="{x:Type TreeViewItem}">
-                    <EventSetter Event="MouseDoubleClick" Handler="tree_MouseDoubleClick"/>
-                    <!--<Setter Property="Background" Value="Transparent"/>
-                        <Setter Property="HorizontalContentAlignment" Value="{Binding HorizontalContentAlignment, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}"/>
-                        <Setter Property="VerticalContentAlignment" Value="{Binding VerticalContentAlignment, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}"/>
-                        <Setter Property="Padding" Value="1,0,0,0"/>
-                        <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"/>
-                        <Setter Property="FocusVisualStyle" Value="{StaticResource TreeViewItemFocusVisual}"/>-->
                     <Setter Property="Margin" Value="0,1,0,0"/>
+                    
+                    <!--
+                    Things bound to TreeViewItems (instead of the TreeView itself)
+                    -->
+                    <EventSetter Event="MouseDoubleClick" Handler="TreeViewItem_MouseDoubleClick"/>
+                    <EventSetter Event="MouseRightButtonDown" Handler="TreeViewItem_MouseRightButtonDown"/>
+                    <Setter Property="ContextMenu" Value="{StaticResource TreeViewItemContextMenu}"/>
+
+                    <!--
+                    Customization of TreeItem style.
+                    Items will appear selected even if tree loses focus
+                    -->
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="{x:Type TreeViewItem}">
@@ -187,8 +225,12 @@
                                             <Condition Property="IsSelected" Value="true"/>
                                             <Condition Property="IsSelectionActive" Value="false"/>
                                         </MultiTrigger.Conditions>
+                                        <!--
                                         <Setter Property="Background" TargetName="Bd" Value="{DynamicResource {x:Static SystemColors.InactiveSelectionHighlightBrushKey}}"/>
                                         <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}}"/>
+                                        -->
+                                        <Setter Property="Background" TargetName="Bd" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.HighlightTextBrushKey}}"/>
                                     </MultiTrigger>
                                     <Trigger Property="IsEnabled" Value="false">
                                         <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"/>
@@ -210,16 +252,6 @@
                     </Style.Triggers>
                 </Style>
             </TreeView.ItemContainerStyle>
-            <!--<TreeView.ContextMenu>
-                <ContextMenu>
-                    <MenuItem Header="Open"/>
-                    <MenuItem Header="Edit Tags"/>
-                    <MenuItem Header="Edit Metadata"/>
-                    <MenuItem Header="Search for more"/>
-                    <Separator/>
-                    <MenuItem Header="Open Directory"/>
-                </ContextMenu>
-            </TreeView.ContextMenu>-->
         </TreeView>
     </Grid>
 </UserControl>

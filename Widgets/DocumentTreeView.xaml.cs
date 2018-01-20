@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -86,23 +87,30 @@ namespace Datasheets2.Widgets
 
         }
 
-        private void tree_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        private void TreeViewItem_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
-            // Handle double-click on tree view item
-            var treeViewItem = (sender as TreeViewItem);
-            if (treeViewItem != null && treeViewItem.IsSelected)
+            if (e.ChangedButton == MouseButton.Left)
             {
-                var item = treeViewItem.DataContext as IItem;
-                if (item != null && item is Document)
-                    item.OpenItem();
+                // Handle double-click on tree view item
+                var treeViewItem = (sender as TreeViewItem);
+                if (treeViewItem != null && treeViewItem.IsSelected)
+                {
+                    var item = treeViewItem.DataContext as IItem;
+                    if (item != null && item is Document)
+                        item.OpenItem();
 
-                // Prevent triggering child items
-                return;
+                    // Prevent triggering child items
+                    return;
+                }
             }
         }
 
         private void tree_KeyUp(object sender, KeyEventArgs e)
         {
+            // Ignore any key presses if tree doesn't have focus (eg. context menu is open)
+            if (!(sender as TreeView).IsFocused)
+                return;
+
             // Handle enter on tree view item
             if (e.Key == Key.Enter)
             {
@@ -177,15 +185,31 @@ namespace Datasheets2.Widgets
             //((IInputElement)sender).CaptureMouse();
         }
 
-        //#region INotifyPropertyChanged
+        #region Context Menu Actions
 
-        //public event PropertyChangedEventHandler PropertyChanged;
+        #endregion
 
-        //protected void OnPropertyChanged(string propertyName)
-        //{
-        //    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        //}
+        private void miOpenFolder_Activate(object sender, RoutedEventArgs e)
+        {
+            // Open the documents library in explorer
+            Process.Start("explorer", App.Current.DocumentsDir);
+        }
 
-        //#endregion
+        private void TreeViewItem_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            // Force selection of item on right click, before context menu is shown
+            var treeViewItem = (sender as TreeViewItem);
+            treeViewItem.IsSelected = true;
+        }
+
+        private void TreeViewItem_KeyUp(object sender, KeyEventArgs e)
+        {
+
+        }
+
+        private void ContextMenu_KeyUp(object sender, KeyEventArgs e)
+        {
+            e.Handled = true;
+        }
     }
 }

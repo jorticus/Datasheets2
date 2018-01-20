@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 
@@ -141,9 +142,18 @@ namespace Datasheets2.Models
 
         public void OpenItem()
         {
-            //System.Windows.MessageBox.Show($"Open: {this}");
-            Process.Start(this.FilePath);
+            try
+            {
+                Process.Start(this.FilePath);
+            }
+            catch (Exception e)
+            {
+                //((App)App.Current)
+            }
         }
+
+        public ICommand OpenCommand { get { return new RelayCommand((o) => {
+            OpenItem(); }); } }
 
         #region INotifyPropertyChanged
 
