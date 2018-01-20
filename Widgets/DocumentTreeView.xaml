@@ -210,6 +210,16 @@
                     </Style.Triggers>
                 </Style>
             </TreeView.ItemContainerStyle>
+            <!--<TreeView.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Open"/>
+                    <MenuItem Header="Edit Tags"/>
+                    <MenuItem Header="Edit Metadata"/>
+                    <MenuItem Header="Search for more"/>
+                    <Separator/>
+                    <MenuItem Header="Open Directory"/>
+                </ContextMenu>
+            </TreeView.ContextMenu>-->
         </TreeView>
     </Grid>
 </UserControl>

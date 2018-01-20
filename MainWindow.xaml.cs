@@ -24,8 +24,13 @@ namespace Datasheets2
     /// </summary>
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
+        //private string[] SUPPORTED_FILE_EXTS = { ".pdf", ".doc", ".docx" };
+        private string[] SUPPORTED_FILE_EXTS = null; // Support all filetypes
+
         Database db;
         public Database Database { get { return db; } }
+
+        public string DocumentsDir { get { return System.IO.Directory.GetCurrentDirectory(); } }
 
         enum State { TreeView, Search };
         State state = State.TreeView;
@@ -62,8 +67,7 @@ namespace Datasheets2
             this.tree.DataContext = this;
 
             // TODO: Load from settings
-            var dir = System.IO.Directory.GetCurrentDirectory();
-            await db.LoadAsync(dir);
+            await db.LoadAsync(DocumentsDir);
 
             txtSearchBox.Focus();
         }
@@ -90,7 +94,7 @@ namespace Datasheets2
                 e.Handled = true;
             }
         }
-        
+
         private void DocumentTreeView_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             // If pressing up and selected item is 0, shift focus to the search box
@@ -156,6 +160,114 @@ namespace Datasheets2
             search.CancelSearch();
             tree.Visibility = Visibility.Visible;
             search.Visibility = Visibility.Collapsed;
+        }
+
+        private async void tree_Drop(object sender, DragEventArgs e)
+        {
+            // Otherwise this doesn't get called if you drop
+            tree_DragLeave(sender, e);
+
+            // Determine the requested operation
+            var result = tree_DragOperation(sender, e);
+            var operation = result.Item1;
+            var srcfiles = result.Item2;
+
+            if (srcfiles.Length == 0)
+                return;
+
+            var destdir = DocumentsDir;
+
+            switch (operation)
+            {
+                case DragDropEffects.Copy:
+                    await ShellOperation.SHFileOperationAsync(ShellOperation.FileOperation.Copy, srcfiles.ToArray(), destdir);
+                    break;
+
+                case DragDropEffects.Move:
+                    await ShellOperation.SHFileOperationAsync(ShellOperation.FileOperation.Move, srcfiles.ToArray(), destdir);
+                    break;
+
+                default:
+                    // Not supported
+                    break;
+            }
+
+            e.Handled = true;
+        }
+
+        private Tuple<DragDropEffects, string[]> tree_DragOperation(object sender, DragEventArgs e)
+        {
+            // Default: Deny drop
+            DragDropEffects operation = DragDropEffects.None;
+            bool supported = true;
+
+            var filenames = e.Data.GetData(DataFormats.FileDrop, true) as string[];
+            if (filenames.Length != 0)
+            {
+                if (SUPPORTED_FILE_EXTS != null)
+                {
+                    // Validate that all files match valid extensions
+                    var filetypes = filenames.Select(fname => System.IO.Path.GetExtension(fname).ToLowerInvariant());
+                    supported = filetypes.All(ext => SUPPORTED_FILE_EXTS.Contains(ext));
+                }
+
+                string desc = (filenames.Length == 1) ?
+                    $"{System.IO.Path.GetFileName(filenames[0])}" :
+                    //"1 file" :
+                    $"{filenames.Length} files";
+
+                // We support this operation, figure out if it's a copy or move operation
+                // (linking not supported)
+                if (supported)
+                {
+                    bool moveAllowed = ((e.AllowedEffects & DragDropEffects.Move) == DragDropEffects.Move);
+                    bool copyAllowed = ((e.AllowedEffects & DragDropEffects.Copy) == DragDropEffects.Copy);
+
+                    bool ctrlPressed = (e.KeyStates & DragDropKeyStates.ControlKey) == DragDropKeyStates.ControlKey;
+
+                    if (copyAllowed && ctrlPressed)
+                    {
+                        operation = DragDropEffects.Copy;
+                        dropText.Text = $"Copy {desc} to {DocumentsDir}";
+                    }
+                    else if (moveAllowed)
+                    {
+                        operation = DragDropEffects.Move;
+                        dropText.Text = $"Move {desc} to {DocumentsDir}";
+                    }
+                }
+            }
+
+            return new Tuple<DragDropEffects, string[]>(operation, filenames);
+        }
+        private void tree_DragOver(object sender, DragEventArgs e)
+        {
+            try
+            {
+                var result = tree_DragOperation(sender, e);
+                e.Effects = result.Item1;
+            }
+            finally
+            {
+                //dropOverlay.Visibility = (e.Effects != DragDropEffects.None) ?
+                //    Visibility.Visible :
+                //    Visibility.Collapsed;
+                bool showOverlay = (e.Effects != DragDropEffects.None);
+                if (showOverlay != dropOverlay.IsEnabled)
+                    dropOverlay.IsEnabled = showOverlay;
+
+                e.Handled = true;
+            }
+        }
+
+        private void tree_DragLeave(object sender, DragEventArgs e)
+        {
+            //dropOverlay.Visibility = Visibility.Collapsed;
+
+            if (dropOverlay.IsEnabled)
+                dropOverlay.IsEnabled = false;
+
+            e.Handled = true;
         }
     }
 }
