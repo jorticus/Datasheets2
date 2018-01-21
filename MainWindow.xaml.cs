@@ -38,18 +38,33 @@ namespace Datasheets2
  
             this.DataContext = this;
 
+            SetupKeyCommands();
+
+            Loaded += MainWindow_Loaded;
+            Closing += MainWindow_Closing;
+        }
+
+        private void SetupKeyCommands()
+        {
             // Set up ESC key command
             // (Won't activate if a ContextMenu was closed via ESC)
-            var command = new RoutedUICommand(
+            var escCommand = new RoutedUICommand(
                 "EscBtnCommand", "EscBtnCommand", typeof(MainWindow),
                 new InputGestureCollection { new KeyGesture(Key.Escape, ModifierKeys.None, "Close") });
-            CommandBindings.Add(new CommandBinding(command, (sender, e) =>
+            CommandBindings.Add(new CommandBinding(escCommand, (sender, e) =>
             {
                 this.Close();
             }));
 
-            Loaded += MainWindow_Loaded;
-            Closing += MainWindow_Closing;
+            // Set up Refresh key command (F5)
+            var refreshCommand = new RoutedUICommand(
+                "RefreshBtnCommand", "RefreshBtnCommand", typeof(MainWindow),
+                new InputGestureCollection { new KeyGesture(Key.F5, ModifierKeys.None, "Refresh") });
+            CommandBindings.Add(new CommandBinding(refreshCommand, async (sender, e) =>
+            {
+                // NOTE: Async void function
+                await this.Database.RefreshAsync();
+            }));
         }
 
         private async void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
@@ -187,10 +202,12 @@ namespace Datasheets2
             {
                 case DragDropEffects.Copy:
                     await ShellOperation.SHFileOperationAsync(ShellOperation.FileOperation.Copy, srcfiles.ToArray(), destdir);
+                    await Database.RefreshAsync();
                     break;
 
                 case DragDropEffects.Move:
                     await ShellOperation.SHFileOperationAsync(ShellOperation.FileOperation.Move, srcfiles.ToArray(), destdir);
+                    await Database.RefreshAsync();
                     break;
 
                 default:

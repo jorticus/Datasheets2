@@ -42,6 +42,11 @@ namespace Datasheets2.Models
             //Documents.Load();
         }
 
+        public Task RefreshAsync()
+        {
+            return Root.LoadAsync();
+        }
+
         public async Task SaveAsync()
         {
            
@@ -81,6 +86,11 @@ namespace Datasheets2.Models
             {
                 return Root?.GetFilteredItems(_filter, flatten: true);
             }
+        }
+
+        public void AddItem(IItem item)
+        {
+            //RefreshAsync();
         }
 
         #region INotifyPropertyChanged

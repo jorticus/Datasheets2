@@ -261,6 +261,9 @@ namespace Datasheets2.Widgets
             {
                 // Download file to library
             }
+
+            await App.Current.Database.RefreshAsync();
+            //App.Current.Database.CreateItem(destpath);
         }
 
         private ISearchResult GetSelectedItem()

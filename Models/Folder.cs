@@ -161,32 +161,104 @@ namespace Datasheets2.Models
         }
 
         /// <summary>
+        /// Insert item in the correct order.
+        /// Use this instead of Items.Add() to preserve order
+        /// </summary>
+        /// <param name="item">A new item to insert. Should not exist in the list</param>
+        public void InsertItem(IItem item)
+        {
+            var comparer = Comparer<string>.Default;
+
+            int i;
+            for (i = 0; i < this.Items.Count; i++)
+            {
+                var dbItem = Items[i];
+                bool dbIsFolder = (dbItem is Folder);
+                bool itemIsFolder = (item is Folder);
+
+                // Files come after folders, so skip until we reach the files
+                if (!itemIsFolder && dbIsFolder)
+                    continue;
+
+                // Iterate through items until we find the point that we want to insert
+                // (Assumes Items is already sorted alphabetically)
+                if (comparer.Compare(dbItem.Label, item.Label) >= 0)
+                    break;
+
+                // Put folder at end of folders, but before files
+                if (itemIsFolder && !dbIsFolder)
+                    break;
+            }
+
+            this.Items.Insert(i, item);
+        }
+
+        /// <summary>
         /// Populate Items from the file system (specified by the folder's path)
         /// </summary>
         public async Task LoadAsync()
         {
-            // Do not load if we already have items
-            // (TODO: What if we want to refresh?)
-            if (Items.Count > 0)
-                return;
+            bool refresh = (Items.Count > 0);
 
+            if (!Directory.Exists(this.FilePath))
+                throw new FileNotFoundException($"Could not find path '{FilePath}'");
+
+            await LoadFoldersRecursiveAsync();
+            await LoadDocumentsAsync();
+        }
+
+        private async Task LoadFoldersRecursiveAsync()
+        {
             var path = this.FilePath;
-            if (!Directory.Exists(path))
-                throw new FileNotFoundException($"Could not find path '{path}'");
-            
-            foreach (var dirPath in await GetDirectoriesAsync(path))
+
+            var dbFolders = this.Folders.ToList();
+            var dbFolderPaths = dbFolders.Select(d => d.FilePath);
+
+            var fsFolderPaths = (await GetDirectoriesAsync(path))
+                .OrderBy(p => System.IO.Path.GetDirectoryName(p))
+                .ToList();
+
+            // Remove folders that no longer exist on the filesystem
+            var deletedFolders = dbFolderPaths.Except(fsFolderPaths);
+            foreach (var dirPath in deletedFolders)
             {
-                var folder = new Folder(dirPath);
-                await folder.LoadAsync();
-                Items.Add(folder);
+                Folder folder = dbFolders.First(d => d.FilePath == dirPath);
+                this.Items.Remove(folder);
                 await Task.Yield();
             }
 
-            int i = 0;
-            foreach (var filePath in await GetFilesAsync(path))
+            // Add new folders
+            var addedFolders = fsFolderPaths.Except(dbFolderPaths);
+            foreach (var dirPath in addedFolders)
             {
-                var doc = new Document(filePath);
-                Items.Add(doc);
+                var folder = new Folder(dirPath);
+                this.InsertItem(folder);
+                await Task.Yield();
+            }
+
+            // Recurse into each folder, even if folder is already loaded (in case contents have changed)
+            foreach (var folder in this.Folders)
+            {
+                await folder.LoadAsync();
+            }
+        }
+
+        private async Task LoadDocumentsAsync()
+        {
+            var path = this.FilePath;
+
+            int i;
+            var dbDocuments = this.Documents.ToList();
+            var dbDocumentPaths = dbDocuments.Select(d => d.FilePath);
+            var fsDocumentPaths = await GetFilesAsync(path);
+
+            // Remove documents from the list that no longer exist on the filesystem
+            i = 0;
+            var deletedDocuments = dbDocumentPaths.Except(fsDocumentPaths);
+            foreach (var filePath in deletedDocuments)
+            {
+                var item = this.Documents.First(d => d.FilePath == filePath); // TODO: Potentially O(n2)
+                this.Items.Remove(item);
 
                 // Allow UI tasks to run occasionally
                 if (++i % 20 == 0)
@@ -195,6 +267,24 @@ namespace Datasheets2.Models
                     await Task.Delay(1);
                 }
             }
+
+            // Add documents which have been added to the filesystem but are not present in the list
+            i = 0;
+            var addedDocuments = fsDocumentPaths.Except(dbDocumentPaths);
+            foreach (var filePath in addedDocuments)
+            {
+                var doc = new Document(filePath);
+                this.InsertItem(doc);
+
+                // Allow UI tasks to run occasionally
+                if (++i % 20 == 0)
+                {
+                    await Task.Yield();
+                    await Task.Delay(1);
+                }
+            }
+
+
         }
     }
 }
