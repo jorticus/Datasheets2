@@ -4,7 +4,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -72,6 +71,15 @@ namespace Datasheets2.Widgets
                 firstItem.IsSelected = true;
         }
 
+        public void UnfocusTree()
+        {
+            var currentItem = (TreeViewItem)tree.ItemContainerGenerator.ContainerFromItem(tree.SelectedItem);
+            if (currentItem != null)
+            {
+                currentItem.IsSelected = false;
+            }
+        }
+
         public bool IsFirstItemSelected
         {
             get
@@ -135,6 +143,18 @@ namespace Datasheets2.Widgets
         //    }
         //}
 
+        private TreeViewItem GetTreeViewItemAtPoint(Point pos)
+        {
+
+            // Find TreeViewItem under the cursor
+            var hit = tree.InputHitTest(pos) as DependencyObject;
+            while (!(hit is TreeViewItem) && hit != null)
+            {
+                hit = VisualTreeHelper.GetParent(hit);
+            }
+            return (TreeViewItem)hit;
+        }
+
         private void tree_MouseMove(object sender, MouseEventArgs e)
         {
             // Simulate behaviour of old Datasheets app where holding mouse button 
@@ -144,12 +164,7 @@ namespace Datasheets2.Widgets
             {
                 var pos = e.GetPosition(tree);
 
-                // Find TreeViewItem under the cursor
-                var hit = tree.InputHitTest(pos) as DependencyObject;
-                while (!(hit is TreeViewItem) && hit != null)
-                {
-                    hit = VisualTreeHelper.GetParent(hit);
-                }
+                var hit = GetTreeViewItemAtPoint(pos);
 
                 //if (pos.Y < 6)
                 //{
@@ -192,13 +207,15 @@ namespace Datasheets2.Widgets
         private void miOpenFolder_Activate(object sender, RoutedEventArgs e)
         {
             // Open the documents library in explorer
-            Process.Start("explorer", App.Current.DocumentsDir);
+            ShellOperation.ShellOpenFolder(App.Current.DocumentsDir);
         }
 
         private void TreeViewItem_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
         {
             // Force selection of item on right click, before context menu is shown
-            var treeViewItem = (sender as TreeViewItem);
+            //var treeViewItem = (sender as TreeViewItem);
+            var pos = e.GetPosition(tree);
+            var treeViewItem = GetTreeViewItemAtPoint(pos);
             treeViewItem.IsSelected = true;
         }
 
@@ -207,9 +224,13 @@ namespace Datasheets2.Widgets
 
         }
 
-        private void ContextMenu_KeyUp(object sender, KeyEventArgs e)
+        private void miOpenItem_Activate(object sender, RoutedEventArgs e)
         {
-            e.Handled = true;
+            var item = tree.SelectedItem as IItem;
+            if (item != null)
+            {
+                item.OpenItem();
+            }
         }
     }
 }

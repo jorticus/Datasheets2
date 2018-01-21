@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -149,6 +150,51 @@ namespace Datasheets2
             flags |= FILEOP_FLAGS.FOF_MULTIDESTFILES; // Dest is a 1:1 mapping of src, instead of a directory
 
             return SHFileOperationAsync(operation, src, dest, flags);
+        }
+
+        /// <summary>
+        /// Shell execute the command/file.
+        /// WARNING: Take care if command is from an untrusted source
+        /// </summary>
+        /// <param name="command">Command or path to file</param>
+        public static void ShellExecute(string command)
+        {
+            if (!String.IsNullOrEmpty(command))
+            {
+                Process.Start(command);
+            }
+        }
+        
+        /// <summary>
+        /// Open folder in explorer
+        /// </summary>
+        /// <param name="path">Path to folder</param>
+        public static void ShellOpenFolder(string path)
+        {
+            if (!String.IsNullOrEmpty(path))
+            {
+                // Ensure path is a directory (don't allow opening of abitrary files)
+                if (System.IO.Directory.Exists(path))
+                {
+                    Process.Start("explorer", path);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Open URI in the default browser
+        /// </summary>
+        /// <param name="uri">The HTTP/HTTPS URI to open</param>
+        public static void ShellOpenUri(Uri uri)
+        {
+            if (uri != null)
+            {
+                // Ensure URI is a web URL. Other schemes may be able to invoke system behaviour.
+                if (uri.Scheme == "http" || uri.Scheme == "https")
+                {
+                    Process.Start(uri.AbsoluteUri);
+                }
+            }
         }
     }
 }

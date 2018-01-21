@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
@@ -144,7 +143,7 @@ namespace Datasheets2.Models
         {
             try
             {
-                Process.Start(this.FilePath);
+                ShellOperation.ShellExecute(this.FilePath);
             }
             catch (Exception e)
             {

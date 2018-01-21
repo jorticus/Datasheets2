@@ -11,6 +11,17 @@
              DataContext="{Binding RelativeSource={RelativeSource Self}}"
              d:DesignHeight="300" d:DesignWidth="300">
     <UserControl.Resources>
+
+        <Style x:Key="DefaultMenuItemStyle" TargetType="{x:Type MenuItem}">
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+
+        <ContextMenu x:Key="itemContextMenu">
+            <MenuItem Header="_Preview" Click="miPreviewItem_Click" Style="{StaticResource DefaultMenuItemStyle}"/>
+            <MenuItem Header="Open _Webpage" Click="miOpenWebpage_Click"/>
+            <MenuItem Header="Download to _Library" Click="miDownloadLibrary_Click"/>
+        </ContextMenu>
+        
         <CollectionViewSource
             x:Key="listviewsrc"
             Source="{Binding Items}">
@@ -72,14 +83,9 @@
             <ListView.ItemContainerStyle>
                 <Style TargetType="{x:Type ListViewItem}">
                     <EventSetter Event="MouseDoubleClick" Handler="ListViewItem_MouseDoubleClick"/>
+                    <Setter Property="ContextMenu" Value="{StaticResource itemContextMenu}"/>
                 </Style>
             </ListView.ItemContainerStyle>
-            <!--<ListView.ContextMenu>
-                <ContextMenu>
-                    <MenuItem Header="Open PDF"/>
-                    <MenuItem Header="Open Webpage"/>
-                </ContextMenu>
-            </ListView.ContextMenu>-->
         </ListView>
         <ProgressBar
             x:Name="progressBar"

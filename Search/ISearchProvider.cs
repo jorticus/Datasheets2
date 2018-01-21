@@ -18,16 +18,6 @@ namespace Datasheets2.Search
         }
     }
 
-    public interface ISearchResult
-    {
-        string PartName { get; }
-        string Description { get; }
-        string Manufacturer { get; }
-        Uri DatasheetUrl { get; }
-
-        Task DownloadDatasheetAsync(string destpath, CancellationToken ct = default(CancellationToken));
-    }
-
     public interface ISearchProvider
     {
         string Name { get; }

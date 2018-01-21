@@ -10,20 +10,25 @@ using System.Net;
 
 namespace Datasheets2.Models
 {
-    public class WebSearchItem : ISearchResult
+    /// <summary>
+    /// Generic/Base class for search results
+    /// </summary>
+    /// <remarks>
+    /// Can be overidden if you need specific behaviour for downloading the item
+    /// </remarks>
+    public class SearchResult : ISearchResult
     {
-        public WebSearchItem(Uri url = null, string label = null, string description = null, ISearchProvider provider = null)
+        public SearchResult(ISearchProvider provider)
         {
-            this.DatasheetUrl = url;
-            this.PartName = label;
-            this.Description = description;
             this.Provider = provider;
         }
 
         public string PartName { get; set; }
-        public Uri DatasheetUrl { get; set; }
         public string Description { get; set; }
         public string Manufacturer { get; set; }
+
+        public Uri WebpageUrl { get; set; }
+        public Uri DatasheetUrl { get; set; }
 
         public ISearchProvider Provider { get; set; }
 

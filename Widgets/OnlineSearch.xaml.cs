@@ -30,6 +30,7 @@ namespace Datasheets2.Widgets
         private Task searchTask;
         private CancellationTokenSource cts;
         private List<string> temporaryFiles;
+        private Dictionary<ISearchResult, string> temporaryFileMap;
 
         public OnlineSearch()
         {
@@ -38,12 +39,17 @@ namespace Datasheets2.Widgets
             this.DataContext = this;
 
             temporaryFiles = new List<string>();
+            temporaryFileMap = new Dictionary<ISearchResult, string>();
 
             Items = new ObservableCollection<ISearchResult>();
 
             Loaded += OnlineSearch_Loaded;
             App.Current.Exit += Current_Exit;
         }
+
+        public ICommand PreviewItemCommand { get { return new RelayCommand((o) => {
+            return;
+        }); } }
 
         #region Properties
 
@@ -200,7 +206,7 @@ namespace Datasheets2.Widgets
                 var item = ((ListView)sender).SelectedItem as ISearchResult;
                 if (item != null)
                 {
-                    OpenDatasheet(item);
+                    PreviewDatasheet(item);
                 }
             }
         }
@@ -210,16 +216,17 @@ namespace Datasheets2.Widgets
             var item = ((ListViewItem)sender).DataContext as ISearchResult;
             if (item != null)
             {
-                OpenDatasheet(item);
+                PreviewDatasheet(item);
             }
         }
 
-        private async void OpenDatasheet(ISearchResult item)
+        private async Task PreviewDatasheet(ISearchResult item)
         {
             // Create a new 0 byte temporary file placeholder
             var tempfile = System.IO.Path.GetTempFileName();
 
             // Download to temporary file
+            // TODO: Show progress
             await item.DownloadDatasheetAsync(tempfile);
 
             // We know it should be a PDF, rename it
@@ -228,11 +235,67 @@ namespace Datasheets2.Widgets
 
             // Keep track of it so we can delete it later
             temporaryFiles.Add(pdffile);
+            temporaryFileMap[item] = pdffile;
 
             // Shell open the file
             // TODO: This may be potentially dangerous as the file comes from the internet.
             // Windows SHOULD honour the .pdf extension and open in Adobe Reader or equivalent.
-            Process.Start(pdffile);
+            ShellOperation.ShellExecute(pdffile);
+        }
+
+        private async Task DownloadDatasheetToLibrary(ISearchResult item)
+        {
+            
+            string destfile = System.IO.Path.Combine(App.Current.DocumentsDir, item.PartName);
+
+            // Check if filename exists, and give user an opportunity to rename
+
+            string tmpfile;
+            if (temporaryFileMap.TryGetValue(item, out tmpfile))
+            {
+                // Just copy the temporary file
+                await ShellOperation.SHFileOperationAsync(
+                    ShellOperation.FileOperation.Move, tmpfile, destfile);
+            }
+            else
+            {
+                // Download file to library
+            }
+        }
+
+        private ISearchResult GetSelectedItem()
+        {
+            return list.SelectedItem as ISearchResult;
+        }
+
+        private async void miPreviewItem_Click(object sender, RoutedEventArgs e)
+        {
+            // Download & preview the item
+            var item = GetSelectedItem();
+            if (item != null)
+            {
+                await PreviewDatasheet(item);
+            }
+        }
+
+        private async void miDownloadLibrary_Click(object sender, RoutedEventArgs e)
+        {
+            // Download the item to the library
+            var item = GetSelectedItem();
+            if (item != null)
+            {
+                await DownloadDatasheetToLibrary(item);
+            }
+        }
+
+        private void miOpenWebpage_Click(object sender, RoutedEventArgs e)
+        {
+            // Open the original webpage
+            var item = GetSelectedItem();
+            if (item != null)
+            {
+                ShellOperation.ShellOpenUri(item.WebpageUrl);
+            }
         }
     }
 }

@@ -23,8 +23,12 @@ namespace Datasheets2.Search
 
         public string Name { get { return "DatasheetCatalog.net"; } }
 
-        protected class DatasheetCatalogSearchResult : WebSearchItem
+        protected class DatasheetCatalogSearchResult : SearchResult
         {
+            public DatasheetCatalogSearchResult(DatasheetCatalog provider)
+                : base(provider)
+            { }
+
             public override async Task DownloadDatasheetAsync(string destpath, CancellationToken ct = default(CancellationToken))
             {
                 var cookies = new CookieContainer();
@@ -94,13 +98,13 @@ namespace Datasheets2.Search
                                 var dsUri = await RequestDatasheetUri(itemUri, ct);
                                 if (dsUri != null)
                                 {
-                                    OnItemFound(new DatasheetCatalogSearchResult
+                                    OnItemFound(new DatasheetCatalogSearchResult(this)
                                     {
+                                        WebpageUrl = itemUri,
                                         DatasheetUrl = dsUri,
                                         PartName = partName,
                                         Description = description,
                                         Manufacturer = manufacturer,
-                                        Provider = this
                                     });
 
                                     // Limit to N valid results
@@ -155,7 +159,7 @@ namespace Datasheets2.Search
 
         public event EventHandler<ItemFoundEventArgs> ItemFound;
 
-        private void OnItemFound(WebSearchItem item)
+        private void OnItemFound(SearchResult item)
         {
             ItemFound?.Invoke(this, new ItemFoundEventArgs(item));
         }

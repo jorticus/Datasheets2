@@ -108,6 +108,7 @@ namespace Datasheets2
                 if (tree.IsFirstItemSelected)
                 {
                     txtSearchBox.Focus();
+                    tree.UnfocusTree();
                     e.Handled = true;
                 }
             }

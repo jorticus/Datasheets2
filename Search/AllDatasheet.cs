@@ -22,9 +22,13 @@ namespace Datasheets2.Search
 
         public string Name { get { return "AllDatasheet.com"; } }
 
-        protected class AllDatasheetSearchResult : WebSearchItem
+        protected class AllDatasheetSearchResult : SearchResult
         {
             public CookieContainer CookieJar { get; set; }
+
+            public AllDatasheetSearchResult(AllDatasheet provider)
+                : base(provider)
+            { }
 
             public override async Task DownloadDatasheetAsync(string destpath, CancellationToken ct = default(CancellationToken))
             {
@@ -94,12 +98,12 @@ namespace Datasheets2.Search
                             var dsUri = await RequestDatasheetUri(itemUri, uri, ct, cookieJar);
                             if (dsUri != null)
                             {
-                                OnItemFound(new AllDatasheetSearchResult
+                                OnItemFound(new AllDatasheetSearchResult(this)
                                 {
+                                    WebpageUrl = itemUri,
                                     DatasheetUrl = dsUri,
                                     PartName = partNo,
                                     Description = description,
-                                    Provider = this,
                                     CookieJar = cookieJar
                                 });
 
@@ -201,7 +205,7 @@ namespace Datasheets2.Search
 
         public event EventHandler<ItemFoundEventArgs> ItemFound;
 
-        private void OnItemFound(WebSearchItem item)
+        private void OnItemFound(SearchResult item)
         {
             ItemFound?.Invoke(this, new ItemFoundEventArgs(item));
         }
