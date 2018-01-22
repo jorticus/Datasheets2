@@ -11,24 +11,7 @@ namespace Datasheets2.Models
 {
     public class Database : INotifyPropertyChanged
     {
-        /*#region Singleton
-
-        public static Database Instance { get { return GetInstance(); } }
-        protected static Database _instance = null;
-
-        protected static Database GetInstance()
-        {
-            if (_instance == null)
-            {
-                _instance = new Database();
-            }
-            return _instance;
-        }
-
-        #endregion*/
-
         protected Folder root;
-        //protected List<Document> documents;
 
         public Database()
         {
@@ -39,7 +22,6 @@ namespace Datasheets2.Models
         {
             Root = new Folder(path);
             await Root.LoadAsync();
-            //Documents.Load();
         }
 
         public Task RefreshAsync()
@@ -86,11 +68,6 @@ namespace Datasheets2.Models
             {
                 return Root?.GetFilteredItems(_filter, flatten: true);
             }
-        }
-
-        public void AddItem(IItem item)
-        {
-            //RefreshAsync();
         }
 
         #region INotifyPropertyChanged

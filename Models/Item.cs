@@ -23,6 +23,8 @@ namespace Datasheets2.Models
         ImageSource Icon { get; }
 
         void OpenItem();
+
+        void Rename(string newName);
     }
 
     public class Item : IItem, INotifyPropertyChanged
@@ -31,19 +33,14 @@ namespace Datasheets2.Models
 
         public Item(string filePath, string label = null)
         {
-            // Automatic label
-            if (label == null && filePath != null)
-                label = System.IO.Path.GetFileNameWithoutExtension(filePath);
-
-            this.filePath = filePath;
             this._label = label;
+            this.filePath = filePath;
 
             //var iconLoadTask = Task.Factory.StartNew(async () => {
             //    await LoadImageSourceAsync();
             //});
 
-
-            this._lazyicon = new Lazy<ImageSource>(GetIconImageSource);
+            ResetIcon();
         }
 
         public string FilePath { get { return filePath; } }
@@ -51,7 +48,7 @@ namespace Datasheets2.Models
         private string _label;
         public string Label
         {
-            get { return _label; }
+            get { return _label ?? System.IO.Path.GetFileNameWithoutExtension(filePath); }
             set { _label = value; OnPropertyChanged("Label"); }
         }
 
@@ -64,6 +61,12 @@ namespace Datasheets2.Models
 
         private Lazy<ImageSource> _lazyicon;
         public ImageSource Icon { get { return _lazyicon.Value; } }
+
+        protected void ResetIcon()
+        {
+            this._lazyicon = new Lazy<ImageSource>(GetIconImageSource);
+            OnPropertyChanged("Icon");
+        }
 
         //private ImageSource _icon;
         //public ImageSource Icon
@@ -149,6 +152,16 @@ namespace Datasheets2.Models
             {
                 //((App)App.Current)
             }
+        }
+
+        public virtual void Rename(string newName)
+        {
+            string currPath = System.IO.Path.GetDirectoryName(filePath);
+            string newPath = System.IO.Path.Combine(currPath, newName);
+
+            this.filePath = newPath;
+            OnPropertyChanged("FilePath");
+            OnPropertyChanged("Label");
         }
 
         public ICommand OpenCommand { get { return new RelayCommand((o) => {

@@ -262,8 +262,9 @@ namespace Datasheets2.Widgets
                 // Download file to library
             }
 
-            await App.Current.Database.RefreshAsync();
-            //App.Current.Database.CreateItem(destpath);
+            // FSWatcher should automatically pick up the new item when it's copied into the library directory
+
+            //await App.Current.Database.RefreshAsync();
         }
 
         private ISearchResult GetSelectedItem()

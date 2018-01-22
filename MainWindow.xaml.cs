@@ -202,12 +202,12 @@ namespace Datasheets2
             {
                 case DragDropEffects.Copy:
                     await ShellOperation.SHFileOperationAsync(ShellOperation.FileOperation.Copy, srcfiles.ToArray(), destdir);
-                    await Database.RefreshAsync();
+                    //await Database.RefreshAsync();
                     break;
 
                 case DragDropEffects.Move:
                     await ShellOperation.SHFileOperationAsync(ShellOperation.FileOperation.Move, srcfiles.ToArray(), destdir);
-                    await Database.RefreshAsync();
+                    //await Database.RefreshAsync();
                     break;
 
                 default:

@@ -17,5 +17,19 @@ namespace Datasheets2.Models
             //    new Tag("test", System.Windows.Media.Colors.DarkGreen)
             //};
         }
+
+        public override void Rename(string newName)
+        {
+            string currExt = System.IO.Path.GetExtension(FilePath);
+
+            base.Rename(newName);
+
+            // Reset icon if filetype has changed
+            string newExt = System.IO.Path.GetExtension(newName);
+            if (currExt != newExt)
+            {
+                ResetIcon();
+            }
+        }
     }
 }

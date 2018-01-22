@@ -12,6 +12,7 @@ namespace Datasheets2.Models
     public class Folder : Item
     {
         private ObservableCollection<IItem> _items;
+        private FileSystemWatcher fsWatcher;
 
         /// <summary>
         /// An observable collection of child items
@@ -98,6 +99,7 @@ namespace Datasheets2.Models
             base(filePath)
         {
             this.Items = items ?? new ObservableCollection<IItem>();
+            this.fsWatcher = null;
         }
 
         /// <summary>
@@ -114,7 +116,7 @@ namespace Datasheets2.Models
             this.Items = new ObservableCollection<IItem>(items);
         }
 
-        public static IEnumerable<IItem> ScanPath(string path)
+        protected static IEnumerable<IItem> ScanPath(string path)
         {
             if (!Directory.Exists(path))
                 throw new FileNotFoundException($"Could not find path '{path}'");
@@ -135,7 +137,7 @@ namespace Datasheets2.Models
             }
         }
 
-        public void Load()
+        protected void Load()
         {
             foreach (var item in ScanPath(FilePath))
             {
@@ -205,6 +207,114 @@ namespace Datasheets2.Models
 
             await LoadFoldersRecursiveAsync();
             await LoadDocumentsAsync();
+
+            InitFileSystemWatcher();
+        }
+
+        private void InitFileSystemWatcher()
+        {
+            //if (fsWatcher != null)
+            //{
+            //    // Unload original
+            //    fsWatcher.EnableRaisingEvents = false;
+            //    fsWatcher.Created -= FsWatcher_Created;
+            //    fsWatcher.Changed -= FsWatcher_Changed;
+            //    fsWatcher.Renamed -= FsWatcher_Renamed;
+            //    fsWatcher.Deleted -= FsWatcher_Deleted;
+            //    fsWatcher.Dispose();
+            //}
+
+            // NOTE1: If Folder is re-named, we must update the FSwatcher path or things get screwey.
+            // (Watcher will keep watching the dir, but report the old path)
+            // NOTE2: Nested filesystemwatchers seems to prevent the root-level watcher from being deleted.
+            // A better method would be to just have a single watcher that keeps track of subfolders.
+            if (fsWatcher == null)
+            {
+                fsWatcher = new FileSystemWatcher(this.FilePath);
+                //fsWatcher.NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName;
+                //fsWatcher.Filter = "*.*";
+                fsWatcher.EnableRaisingEvents = true;
+                fsWatcher.Created += FsWatcher_Created;
+                fsWatcher.Changed += FsWatcher_Changed;
+                fsWatcher.Renamed += FsWatcher_Renamed;
+                fsWatcher.Deleted += FsWatcher_Deleted;
+            }
+        }
+
+        private void FsWatcher_Created(object sender, FileSystemEventArgs e)
+        {
+            IItem item;
+            var newPath = e.FullPath;
+            if (System.IO.File.Exists(newPath))
+            {
+                item = new Document(newPath);
+            }
+            else
+            {
+                item = new Folder(newPath);
+            }
+
+            App.Current.Dispatcher.Invoke(async () =>
+            {
+                InsertItem(item);
+
+                if (item is Folder)
+                    await (item as Folder).LoadAsync();
+            });
+        }
+
+        private void FsWatcher_Changed(object sender, FileSystemEventArgs e)
+        {
+
+        }
+
+        private void FsWatcher_Renamed(object sender, RenamedEventArgs e)
+        {
+            var item = Items.FirstOrDefault(i => i.FilePath == e.OldFullPath);
+            if (item != null)
+            {
+                string oldDirPath = System.IO.Path.GetDirectoryName(e.OldFullPath);
+                string dirPath = System.IO.Path.GetDirectoryName(e.FullPath);
+                if (oldDirPath != dirPath)
+                {
+                    // This is actually a move.
+                    // For now, remove and re-insert.
+                    // TODO: Optimization - carry existing subitems along with the new folder
+                    this.Items.Remove(item);
+                    FsWatcher_Created(sender, new FileSystemEventArgs(WatcherChangeTypes.Created, e.FullPath, e.Name));
+                }
+                else
+                {
+                    item.Rename(e.Name);
+                }
+            }
+            else
+            {
+                // Hmm, a file was re-named that we don't know about.
+                // Add it.
+                FsWatcher_Created(sender, new FileSystemEventArgs(WatcherChangeTypes.Created, e.FullPath, e.Name));
+            }
+        }
+
+        private void FsWatcher_Deleted(object sender, FileSystemEventArgs e)
+        {
+            var item = Items.FirstOrDefault(i => i.FilePath == e.FullPath);
+            if (item != null)
+            {
+                App.Current.Dispatcher.Invoke(() =>
+                {
+                    this.Items.Remove(item);
+                });
+            }
+        }
+
+        public override void Rename(string newName)
+        {
+            base.Rename(newName);
+
+            // Update FS Watcher when path changes
+            if (fsWatcher != null)
+                fsWatcher.Path = this.FilePath;
         }
 
         private async Task LoadFoldersRecursiveAsync()
