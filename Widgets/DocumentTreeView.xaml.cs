@@ -232,5 +232,181 @@ namespace Datasheets2.Widgets
                 item.OpenItem();
             }
         }
+
+        private bool _dragInProgress = false;
+        private TreeViewItem _selectionBeforeDrag = null;
+
+        private Tuple<DragDropEffects, string[]> tree_DragOperation(object sender, DragEventArgs e)
+        {
+            // Default: Deny drop
+            DragDropEffects operation = DragDropEffects.None;
+            bool supported = true;
+
+            var filenames = e.Data.GetData(DataFormats.FileDrop, true) as string[];
+            if (filenames.Length != 0)
+            {
+                //if (SUPPORTED_FILE_EXTS != null)
+                //{
+                //    // Validate that all files match valid extensions
+                //    var filetypes = filenames.Select(fname => System.IO.Path.GetExtension(fname).ToLowerInvariant());
+                //    supported = filetypes.All(ext => SUPPORTED_FILE_EXTS.Contains(ext));
+                //}
+
+                string desc = (filenames.Length == 1) ?
+                    $"{System.IO.Path.GetFileName(filenames[0])}" :
+                    //"1 file" :
+                    $"{filenames.Length} files";
+
+                // We support this operation, figure out if it's a copy or move operation
+                // (linking not supported)
+                if (supported)
+                {
+                    bool moveAllowed = ((e.AllowedEffects & DragDropEffects.Move) == DragDropEffects.Move);
+                    bool copyAllowed = ((e.AllowedEffects & DragDropEffects.Copy) == DragDropEffects.Copy);
+
+                    bool ctrlPressed = (e.KeyStates & DragDropKeyStates.ControlKey) == DragDropKeyStates.ControlKey;
+
+                    if (copyAllowed && ctrlPressed)
+                    {
+                        operation = DragDropEffects.Copy;
+                        //dropText.Text = $"Copy {desc} to {App.Current.DocumentsDir}";
+                    }
+                    else if (moveAllowed)
+                    {
+                        operation = DragDropEffects.Move;
+                        //dropText.Text = $"Move {desc} to {App.Current.DocumentsDir}";
+                    }
+                }
+            }
+
+            return new Tuple<DragDropEffects, string[]>(operation, filenames);
+        }
+
+        private void tree_DragOver(object sender, DragEventArgs e)
+        {
+            // Capture selected item before drag was initiated
+            if (!_dragInProgress && _selectionBeforeDrag != null)
+            {
+                _selectionBeforeDrag = (TreeViewItem)tree.ItemContainerGenerator.ContainerFromItem(tree.SelectedItem);
+            }
+            _dragInProgress = true;
+
+            try
+            {
+                // Determine if drag is allowed
+                var result = tree_DragOperation(sender, e);
+                e.Effects = result.Item1;
+
+                // Show hover effects if drag is allowed
+                bool showOverlay = (e.Effects != DragDropEffects.None);
+                if (showOverlay)
+                {
+                    var pos = e.GetPosition(tree);
+                    var treeViewItem = GetTreeViewItemAtPoint(pos);
+                    if (treeViewItem != null && treeViewItem.DataContext is Folder)
+                    {
+                        // Select/Highlight folders
+                        treeViewItem.IsSelected = true;
+                    }
+                    else
+                    {
+                        // Don't select anything if dragging over a file or empty space
+                        var currentItem = (TreeViewItem)tree.ItemContainerGenerator.ContainerFromItem(tree.SelectedItem);
+                        if (currentItem != null)
+                            currentItem.IsSelected = false;
+                    }
+                }
+
+                if (showOverlay != dropOverlay.IsEnabled)
+                    dropOverlay.IsEnabled = showOverlay;
+            }
+            finally
+            {
+                e.Handled = true;
+            }
+        }
+
+        private void tree_DragLeave(object sender, DragEventArgs e)
+        {
+            _dragInProgress = false;
+
+            // https://stackoverflow.com/questions/5447301/wpf-drag-drop-when-does-dragleave-fire
+            App.Current.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (_dragInProgress == false)
+                    tree_DragLeaveForReal(sender, e);
+            }));
+        }
+
+        private void tree_DragLeaveForReal(object sender, DragEventArgs e)
+        {
+            // Clear the current "selection" (selected by drag)
+            var currentItem = (TreeViewItem)tree.ItemContainerGenerator.ContainerFromItem(tree.SelectedItem);
+            if (currentItem != null)
+                currentItem.IsSelected = false;
+
+            // Restore selection before drag
+            if (_selectionBeforeDrag != null)
+            {
+                _selectionBeforeDrag.IsSelected = true;
+                _selectionBeforeDrag = null;
+            }
+
+            // Hide overlay
+            if (dropOverlay.IsEnabled)
+                dropOverlay.IsEnabled = false;
+
+            e.Handled = true;
+        }
+
+        private async void tree_Drop(object sender, DragEventArgs e)
+        {
+            // Determine the requested operation
+            var result = tree_DragOperation(sender, e);
+            var operation = result.Item1;
+            var srcfiles = result.Item2;
+
+            if (srcfiles.Length == 0)
+                return;
+
+            // Default to the library root
+            var destdir = App.Current.DocumentsDir;
+
+            // If dropped onto a folder, that's where the file should go
+            var currentItem = (IItem)tree.SelectedItem;
+            if (currentItem != null)
+            {
+                if (currentItem is Folder)
+                {
+                    destdir = currentItem.FilePath;
+
+                    // Sanity check - don't want the file to end up somewhere outside the library!
+                    if (!System.IO.Path.GetFullPath(destdir).StartsWith(App.Current.DocumentsDir))
+                        throw new InvalidOperationException($"Unexpected destination: {destdir}");
+                }
+            }
+
+            // Otherwise this doesn't get called if you drop
+            tree_DragLeaveForReal(sender, e);
+
+            switch (operation)
+            {
+                case DragDropEffects.Copy:
+                    await ShellOperation.SHFileOperationAsync(ShellOperation.FileOperation.Copy, srcfiles.ToArray(), destdir);
+                    //await Database.RefreshAsync();
+                    break;
+
+                case DragDropEffects.Move:
+                    await ShellOperation.SHFileOperationAsync(ShellOperation.FileOperation.Move, srcfiles.ToArray(), destdir);
+                    //await Database.RefreshAsync();
+                    break;
+
+                default:
+                    // Not supported
+                    break;
+            }
+
+            e.Handled = true;
+        }
     }
 }
