@@ -408,5 +408,10 @@ namespace Datasheets2.Widgets
 
             e.Handled = true;
         }
+
+        private async void miRefresh_Activate(object sender, RoutedEventArgs e)
+        {
+            await App.Current.Database.RefreshAsync();
+        }
     }
 }

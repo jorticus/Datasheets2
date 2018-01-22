@@ -42,6 +42,8 @@ namespace Datasheets2
 
             Loaded += MainWindow_Loaded;
             Closing += MainWindow_Closing;
+
+            search.Closed += Search_Closed;
         }
 
         private void SetupKeyCommands()
@@ -135,6 +137,19 @@ namespace Datasheets2
             Filter();
         }
 
+        private void Search_Closed(object sender, EventArgs e)
+        {
+            if (state == State.Search)
+            {
+                //// Clear filter
+                //txtSearchBox.Text = "";
+                //Filter();
+
+                // TODO: Maybe select the item that was just added?
+                CancelSearch();
+            }
+        }
+
         private void Filter()
         {
 
@@ -179,6 +194,11 @@ namespace Datasheets2
             txtSearchBox.IsEnabled = true;
             state = State.TreeView;
             search.CancelSearch();
+
+            // Clear filter
+            txtSearchBox.Text = "";
+            Filter();
+
             tree.Visibility = Visibility.Visible;
             search.Visibility = Visibility.Collapsed;
         }

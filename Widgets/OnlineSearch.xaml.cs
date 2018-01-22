@@ -63,7 +63,20 @@ namespace Datasheets2.Widgets
             set { SetValue(ItemsProperty, value); }
         }
 
+        public event EventHandler Closed;
+
+        protected void OnClosed()
+        {
+            Closed?.Invoke(this, new EventArgs());
+        }
+
         #endregion
+
+        private void FinishSearch()
+        {
+            CancelSearch();
+            OnClosed();
+        }
 
         private void Current_Exit(object sender, ExitEventArgs e)
         {
@@ -199,72 +212,91 @@ namespace Datasheets2.Widgets
 
         #endregion
 
-        private void list_KeyUp(object sender, KeyEventArgs e)
+        private async void list_KeyUp(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
             {
                 var item = ((ListView)sender).SelectedItem as ISearchResult;
                 if (item != null)
                 {
-                    PreviewDatasheet(item);
+                    await PreviewDatasheet(item);
                 }
             }
         }
 
-        private void ListViewItem_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        private async void ListViewItem_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             var item = ((ListViewItem)sender).DataContext as ISearchResult;
             if (item != null)
             {
-                PreviewDatasheet(item);
+                await PreviewDatasheet(item);
             }
         }
 
-        private async Task PreviewDatasheet(ISearchResult item)
+        private async Task<string> DownloadDatasheet(ISearchResult item)
         {
             // Create a new 0 byte temporary file placeholder
-            var tempfile = System.IO.Path.GetTempFileName();
+            //var tempfile = System.IO.Path.GetTempFileName();
+            string temppath = System.IO.Path.GetTempPath();
+            var tempfile = System.IO.Path.Combine(temppath, item.Filename);
+
+            // Sanity check - ensure file doesn't end up outside the TEMP folder
+            ShellOperation.ValidatePathRoot(tempfile, temppath);
+
+            // Remove existing items
+            // TODO: What if we can't remove?
+            if (System.IO.File.Exists(tempfile))
+                System.IO.File.Delete(tempfile);
 
             // Download to temporary file
             // TODO: Show progress
             await item.DownloadDatasheetAsync(tempfile);
 
-            // We know it should be a PDF, rename it
-            var pdffile = System.IO.Path.ChangeExtension(tempfile, ".pdf");
-            System.IO.File.Move(tempfile, pdffile);
-
             // Keep track of it so we can delete it later
-            temporaryFiles.Add(pdffile);
-            temporaryFileMap[item] = pdffile;
+            temporaryFiles.Add(tempfile);
+            temporaryFileMap[item] = tempfile;
+
+            return tempfile;
+        }
+
+        private async Task PreviewDatasheet(ISearchResult item)
+        {
+            var pdffile = await DownloadDatasheet(item);
 
             // Shell open the file
             // TODO: This may be potentially dangerous as the file comes from the internet.
             // Windows SHOULD honour the .pdf extension and open in Adobe Reader or equivalent.
-            ShellOperation.ShellExecute(pdffile);
+            string ext = System.IO.Path.GetExtension(pdffile).ToLowerInvariant();
+            if (ext == ".pdf")
+            {
+                ShellOperation.ShellExecute(pdffile);
+            }
+            else
+            {
+                App.ErrorHandler($"Unsupported file type {ext}", fatal: false);
+            }
         }
 
         private async Task DownloadDatasheetToLibrary(ISearchResult item)
         {
-            
-            string destfile = System.IO.Path.Combine(App.Current.DocumentsDir, item.PartName);
-
-            // Check if filename exists, and give user an opportunity to rename
+            string destfile = System.IO.Path.Combine(App.Current.DocumentsDir, item.Filename);
 
             string tmpfile;
-            if (temporaryFileMap.TryGetValue(item, out tmpfile))
+            if (!temporaryFileMap.TryGetValue(item, out tmpfile))
             {
-                // Just copy the temporary file
-                await ShellOperation.SHFileOperationAsync(
-                    ShellOperation.FileOperation.Move, tmpfile, destfile);
+                // Download file to TEMP if not already downloaded
+                tmpfile = await DownloadDatasheet(item);
             }
-            else
-            {
-                // Download file to library
-            }
+
+            if (!System.IO.File.Exists(tmpfile))
+                throw new InvalidOperationException($"Temp file has disappeared?? {tmpfile}");
+
+            // Copy the temporary file into the library
+            await ShellOperation.SHFileOperationAsync(
+                ShellOperation.FileOperation.Move, tmpfile, destfile);
 
             // FSWatcher should automatically pick up the new item when it's copied into the library directory
-
-            //await App.Current.Database.RefreshAsync();
+            FinishSearch();
         }
 
         private ISearchResult GetSelectedItem()

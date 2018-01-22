@@ -19,6 +19,7 @@
         <!-- Common Context Menu -->
         <x:Array Type="{x:Type sys:Object}" x:Shared="False" x:Key="commonMenuItems">
             <!--<MenuItem Header="_Settings"/>-->
+            <MenuItem Header="_Refresh" Click="miRefresh_Activate" InputGestureText="F5"/>
             <MenuItem Header="Open _Library" Click="miOpenFolder_Activate"/>
         </x:Array>
         <ContextMenu x:Key="MainContextMenu" ItemsSource="{StaticResource commonMenuItems}"/>

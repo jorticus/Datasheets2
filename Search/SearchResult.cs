@@ -30,6 +30,8 @@ namespace Datasheets2.Models
         public Uri WebpageUrl { get; set; }
         public Uri DatasheetUrl { get; set; }
 
+        public virtual string Filename { get { return ShellOperation.SanitizeFilename(PartName + ".pdf"); } }
+
         public ISearchProvider Provider { get; set; }
 
         public virtual async Task DownloadDatasheetAsync(string destpath, CancellationToken ct = default(CancellationToken))

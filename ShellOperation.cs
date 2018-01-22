@@ -196,5 +196,29 @@ namespace Datasheets2
                 }
             }
         }
+
+        /// <summary>
+        /// Ensure path is a subfolder of root, to prevent files from ending up outside the root
+        /// </summary>
+        /// <param name="path"></param>
+        /// <param name="root"></param>
+        public static void ValidatePathRoot(string path, string root)
+        {
+            path = System.IO.Path.GetFullPath(path);
+            if (!path.StartsWith(root))
+                throw new InvalidOperationException("Invalid destination '{path}'");
+        }
+
+        /// <summary>
+        /// Replace invalid filename chars with '_'
+        /// </summary>
+        /// <param name="filename"></param>
+        /// <returns></returns>
+        public static string SanitizeFilename(string filename, string replacement = "_")
+        {
+            // https://stackoverflow.com/questions/309485/c-sharp-sanitize-file-name
+            var invalidChars = System.IO.Path.GetInvalidFileNameChars();
+            return String.Join(replacement, filename.Split(invalidChars, StringSplitOptions.RemoveEmptyEntries)).TrimEnd('.');
+        }
     }
 }
