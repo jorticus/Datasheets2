@@ -102,6 +102,7 @@ namespace Datasheets2.Widgets
                 // TODO: Try trust-worthy providers first, then fall back to lesser trust-worthy sites.
                 var searchProviders = new List<Type>
                 {
+                    typeof(Search.OctopartAPI),
                     typeof(Search.DatasheetCatalog),
                     typeof(Search.AllDatasheet),
                 };

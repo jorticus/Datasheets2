@@ -17,6 +17,10 @@ namespace Datasheets2.Search
         Uri WebpageUrl { get; }
         Uri DatasheetUrl { get; }
 
+        string DatasheetSource { get; set; }
+        int? DatasheetFileSize { get; set; } // In bytes
+        int? DatasheetPages { get; set; }
+
         string Filename { get; }
 
         Task DownloadDatasheetAsync(string destpath, CancellationToken ct = default(CancellationToken));

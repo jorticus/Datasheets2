@@ -58,6 +58,15 @@
                     <GridViewColumn 
                         Header="Manufacturer" 
                         DisplayMemberBinding="{Binding Manufacturer}"/>
+                    <GridViewColumn 
+                        Header="Source" 
+                        DisplayMemberBinding="{Binding DatasheetSource}"/>
+                    <GridViewColumn 
+                        Header="Size" 
+                        DisplayMemberBinding="{Binding DatasheetFileSize}"/>
+                    <GridViewColumn 
+                        Header="Pages" 
+                        DisplayMemberBinding="{Binding DatasheetPages}"/>
                 </GridView>
             </ListView.View>
             <ListView.GroupStyle>

@@ -1,4 +1,5 @@
 ﻿using HtmlAgilityPack;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -95,6 +96,23 @@ namespace Datasheets2
 
                 return doc;
             }
+        }
+
+        public static async Task<T> RequestJsonAsync<T>(Uri url, CancellationToken ct = default(CancellationToken), Dictionary<string, string> headers = null)
+        {
+            /*using (var response = await WebRequestAsync(url, ct, headers))
+            {
+                var content = await MemoryStreamFromWebResponseAsync(response, ct);
+
+                using (var reader = new JsonTextReader(new StreamReader(content)))
+                {
+                    await reader.ReadAsync();
+                    return reader.Value;
+                }
+            }*/
+
+            var content = await RequestStringAsync(url, ct, headers);
+            return JsonConvert.DeserializeObject<T>(content);
         }
 
 

@@ -4,3 +4,4 @@ packages/
 Resources/*.png
 .*
 *.user
+ApiKeys.xml

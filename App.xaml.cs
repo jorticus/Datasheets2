@@ -24,6 +24,9 @@ namespace Datasheets2
         Database db;
         public Database Database { get { return db; } }
 
+        ApiKeyManager apiKeys;
+        public ApiKeyManager ApiKeys { get { return apiKeys; } }
+
         // TODO: Load from settings
         // Just use current working directory for now.
         public string DocumentsDir { get { return System.IO.Directory.GetCurrentDirectory(); } }
@@ -32,6 +35,8 @@ namespace Datasheets2
         {
             this.DispatcherUnhandledException += App_DispatcherUnhandledException;
             db = new Database();
+
+            apiKeys = ApiKeyManager.LoadFromResource("ApiKeys.xml");
         }
 
         private void App_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
