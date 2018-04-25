@@ -180,27 +180,41 @@ namespace Datasheets2
 
         private void StartSearch()
         {
-            btnSearch.Content = "Cancel";
-            txtSearchBox.IsEnabled = false;
-            state = State.Search;
-            search.Visibility = Visibility.Visible;
-            tree.Visibility = Visibility.Collapsed;
-            search.BeginSearch(txtSearchBox.Text);
+            try
+            {
+                btnSearch.Content = "Cancel";
+                txtSearchBox.IsEnabled = false;
+                state = State.Search;
+                search.Visibility = Visibility.Visible;
+                tree.Visibility = Visibility.Collapsed;
+                search.BeginSearch(txtSearchBox.Text);
+            }
+            catch (Exception ex)
+            {
+                App.ErrorHandler(ex.ToString(), "Error searching", fatal: false);
+            }
         }
 
         private void CancelSearch()
         {
-            btnSearch.Content = "Search";
-            txtSearchBox.IsEnabled = true;
-            state = State.TreeView;
-            search.CancelSearch();
+            try
+            {
+                btnSearch.Content = "Search";
+                txtSearchBox.IsEnabled = true;
+                state = State.TreeView;
+                search.CancelSearch();
 
-            // Clear filter
-            txtSearchBox.Text = "";
-            Filter();
+                // Clear filter
+                txtSearchBox.Text = "";
+                Filter();
 
-            tree.Visibility = Visibility.Visible;
-            search.Visibility = Visibility.Collapsed;
+                tree.Visibility = Visibility.Visible;
+                search.Visibility = Visibility.Collapsed;
+            }
+            catch (Exception ex)
+            {
+                App.ErrorHandler(ex.ToString(), "Error cancelling search", fatal: false);
+            }
         }
     }
 }

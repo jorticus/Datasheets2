@@ -51,9 +51,16 @@ namespace Datasheets2.Widgets
             App.Current.Exit += Current_Exit;
         }
 
-        public ICommand PreviewItemCommand { get { return new RelayCommand((o) => {
-            return;
-        }); } }
+        public ICommand PreviewItemCommand
+        {
+            get
+            {
+                return new RelayCommand((o) =>
+                {
+                    return;
+                });
+            }
+        }
 
         #region Properties
 
@@ -134,6 +141,10 @@ namespace Datasheets2.Widgets
             {
                 throw new InvalidOperationException("Search in progress");
             }
+            if (IsOperationInProgress)
+            {
+                throw new InvalidOperationException("Operation in progress");
+            }
 
             IsSearching = true;
             try
@@ -185,7 +196,18 @@ namespace Datasheets2.Widgets
             set
             {
                 _isSearching = value;
-                progressBar.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
+                progressBar.Visibility = (_isSearching || _isOperationInProgress) ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }
+
+        bool _isOperationInProgress = false;
+        protected bool IsOperationInProgress
+        {
+            get { return _isOperationInProgress; }
+            set
+            {
+                _isOperationInProgress = value;
+                progressBar.Visibility = (_isSearching || _isOperationInProgress) ? Visibility.Visible : Visibility.Collapsed;
             }
         }
 
@@ -249,42 +271,62 @@ namespace Datasheets2.Widgets
 
         private async Task PreviewDatasheet(ISearchResult item)
         {
-            var pdffile = await DownloadDatasheet(item);
+            try
+            {
+                IsOperationInProgress = true;
 
-            // Shell open the file
-            // TODO: This may be potentially dangerous as the file comes from the internet.
-            // Windows SHOULD honour the .pdf extension and open in Adobe Reader or equivalent.
-            string ext = System.IO.Path.GetExtension(pdffile).ToLowerInvariant();
-            if (ext == ".pdf")
-            {
-                ShellOperation.ShellExecute(pdffile);
+                var pdffile = await DownloadDatasheet(item);
+
+                // Shell open the file
+                // TODO: This may be potentially dangerous as the file comes from the internet.
+                // Windows SHOULD honour the .pdf extension and open in Adobe Reader or equivalent.
+                string ext = System.IO.Path.GetExtension(pdffile).ToLowerInvariant();
+                if (ext == ".pdf")
+                {
+                    ShellOperation.ShellExecute(pdffile);
+                }
+                else
+                {
+                    App.ErrorHandler($"Unsupported file type {ext}", fatal: false);
+                }
             }
-            else
+            finally
             {
-                App.ErrorHandler($"Unsupported file type {ext}", fatal: false);
+                IsOperationInProgress = false;
             }
         }
 
         private async Task DownloadDatasheetToLibrary(ISearchResult item)
         {
-            string destfile = System.IO.Path.Combine(App.Current.DocumentsDir, item.Filename);
-
-            string tmpfile;
-            if (!temporaryFileMap.TryGetValue(item, out tmpfile))
+            try
             {
-                // Download file to TEMP if not already downloaded
-                tmpfile = await DownloadDatasheet(item);
+                string destfile = System.IO.Path.Combine(App.Current.DocumentsDir, item.Filename);
+
+                string tmpfile;
+                if (!temporaryFileMap.TryGetValue(item, out tmpfile))
+                {
+                    // Download file to TEMP if not already downloaded
+                    tmpfile = await DownloadDatasheet(item);
+                }
+
+                if (!System.IO.File.Exists(tmpfile))
+                    throw new InvalidOperationException($"Temp file has disappeared?? {tmpfile}");
+
+                // Copy the temporary file into the library
+                await ShellOperation.SHFileOperationAsync(
+                    ShellOperation.FileOperation.Move, tmpfile, destfile);
+
+                // FSWatcher should automatically pick up the new item when it's copied into the library directory
+
+                IsOperationInProgress = false;
+
+                // Close the search view
+                FinishSearch();
             }
-
-            if (!System.IO.File.Exists(tmpfile))
-                throw new InvalidOperationException($"Temp file has disappeared?? {tmpfile}");
-
-            // Copy the temporary file into the library
-            await ShellOperation.SHFileOperationAsync(
-                ShellOperation.FileOperation.Move, tmpfile, destfile);
-
-            // FSWatcher should automatically pick up the new item when it's copied into the library directory
-            FinishSearch();
+            finally
+            {
+                IsOperationInProgress = false;
+            }
         }
 
         private ISearchResult GetSelectedItem()
@@ -294,31 +336,52 @@ namespace Datasheets2.Widgets
 
         private async void miPreviewItem_Click(object sender, RoutedEventArgs e)
         {
-            // Download & preview the item
-            var item = GetSelectedItem();
-            if (item != null)
+            try
             {
-                await PreviewDatasheet(item);
+                // Download & preview the item
+                var item = GetSelectedItem();
+                if (item != null)
+                {
+                    await PreviewDatasheet(item);
+                }
+            }
+            catch (Exception ex)
+            {
+                App.ErrorHandler(ex.ToString(), "Error previewing datasheet", fatal: false);
             }
         }
 
         private async void miDownloadLibrary_Click(object sender, RoutedEventArgs e)
         {
-            // Download the item to the library
-            var item = GetSelectedItem();
-            if (item != null)
+            try
             {
-                await DownloadDatasheetToLibrary(item);
+                // Download the item to the library
+                var item = GetSelectedItem();
+                if (item != null)
+                {
+                    await DownloadDatasheetToLibrary(item);
+                }
+            }
+            catch (Exception ex)
+            {
+                App.ErrorHandler(ex.ToString(), "Error downloading datasheet", fatal: false);
             }
         }
 
         private void miOpenWebpage_Click(object sender, RoutedEventArgs e)
         {
-            // Open the original webpage
-            var item = GetSelectedItem();
-            if (item != null)
+            try
             {
-                ShellOperation.ShellOpenUri(item.WebpageUrl);
+                // Open the original webpage
+                var item = GetSelectedItem();
+                if (item != null)
+                {
+                    ShellOperation.ShellOpenUri(item.WebpageUrl);
+                }
+            }
+            catch (Exception ex)
+            {
+                App.ErrorHandler(ex.ToString(), "Error opening webpage for datasheet", fatal: false);
             }
         }
     }
