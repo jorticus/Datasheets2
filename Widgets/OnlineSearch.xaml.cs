@@ -31,6 +31,7 @@ namespace Datasheets2.Widgets
         private CancellationTokenSource cts;
         private List<string> temporaryFiles;
         private Dictionary<ISearchResult, string> temporaryFileMap;
+        private SearchManager searchManager;
 
         public OnlineSearch()
         {
@@ -40,6 +41,9 @@ namespace Datasheets2.Widgets
 
             temporaryFiles = new List<string>();
             temporaryFileMap = new Dictionary<ISearchResult, string>();
+
+            searchManager = new SearchManager();
+            searchManager.ItemFound += Provider_ItemFound;
 
             Items = new ObservableCollection<ISearchResult>();
 
@@ -99,44 +103,24 @@ namespace Datasheets2.Widgets
         {
             try
             {
-                // TODO: Try trust-worthy providers first, then fall back to lesser trust-worthy sites.
-                var searchProviders = new List<Type>
+                try
                 {
-                    typeof(Search.OctopartAPI),
-                    typeof(Search.DatasheetCatalog),
-                    typeof(Search.AllDatasheet),
-                };
-
-                var tasks = new List<Task>();
-                foreach (Type providerType in searchProviders)
-                {
-                    ISearchProvider provider = (ISearchProvider)Activator.CreateInstance(providerType);
-                    provider.ItemFound += Provider_ItemFound;
-
-                    var task = provider.SearchAsync(query, ct);
-                    tasks.Add(task);
+                    await searchManager.SearchAsync(query, ct);
                 }
-
-                searchTask = Task.WhenAll(tasks);
-
-                await searchTask;
+                catch (WebException ex)
+                {
+                    App.ErrorHandler(ex.ToString(), "HTTP Error", fatal: false);
+                }
+                catch (Exception ex)
+                {
+                    App.ErrorHandler(ex, fatal: false);
+                }
             }
-            catch (TaskCanceledException)
+            finally
             {
-                // This is expected
-            }
-            catch (WebException ex)
-            {
+                // TODO: Does this need to be dispatched?
                 IsSearching = false;
-                App.ErrorHandler(ex.ToString(), "HTTP Error", fatal:false);
             }
-            catch (Exception ex)
-            {
-                IsSearching = false;
-                App.ErrorHandler(ex, fatal:false);
-
-            }
-            IsSearching = false;
         }
 
         private void Provider_ItemFound(object sender, ItemFoundEventArgs e)
@@ -147,7 +131,10 @@ namespace Datasheets2.Widgets
         public void BeginSearch(string query)
         {
             if (IsSearching)
+            {
                 throw new InvalidOperationException("Search in progress");
+            }
+
             IsSearching = true;
             try
             {
