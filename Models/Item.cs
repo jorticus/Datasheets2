@@ -4,11 +4,13 @@ using System.ComponentModel;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace Datasheets2.Models
 {
@@ -37,12 +39,6 @@ namespace Datasheets2.Models
         {
             this._label = label ?? System.IO.Path.GetFileNameWithoutExtension(filePath);
             this.filePath = filePath;
-
-            //var iconLoadTask = Task.Factory.StartNew(async () => {
-            //    await LoadImageSourceAsync();
-            //});
-
-            ResetIcon();
         }
 
         public string FilePath { get { return filePath; } }
@@ -61,8 +57,7 @@ namespace Datasheets2.Models
             set { _tags = value; OnPropertyChanged("Tags"); }
         }
 
-        private Lazy<ImageSource> _lazyicon;
-        public ImageSource Icon { get { return _lazyicon.Value; } }
+        public ImageSource Icon { get { return GetIconImageSource(); } }
 
         /// <summary>
         /// Bound to the TreeViewItem's IsSelected property
@@ -82,19 +77,6 @@ namespace Datasheets2.Models
             set { bool x = _isVisible; _isVisible = value; if (x != value) { OnPropertyChanged("IsVisible"); } }
         }
 
-        protected void ResetIcon()
-        {
-            this._lazyicon = new Lazy<ImageSource>(GetIconImageSource);
-            OnPropertyChanged("Icon");
-        }
-
-        //private ImageSource _icon;
-        //public ImageSource Icon
-        //{
-        //    get { return _icon; }
-        //    private set { _icon = value; OnPropertyChanged("Icon"); }
-        //}
-
         public bool FilterResult(string filter)
         {
             return Label.ToLowerInvariant().Contains(filter.ToLowerInvariant());
@@ -105,47 +87,26 @@ namespace Datasheets2.Models
             return Label;
         }
 
-        //protected async Task LoadImageSourceAsync()
-        //{
-        //    // Retrieve the icon for the file/folder represented by this Item
-        //    // NOTE: Default (path==null) is the Folder icon.
-        //    string path = this.FilePath;
-        //    //return System.Drawing.Icon.ExtractAssociatedIcon(path);
-        //    //var icon = IconUtil.GetSmallIconForExtension(path);
-        //    var icon = await IconUtil.GetIconForPathAsync(path, IconUtil.IconSize.SmallIcon);
-
-        //    if (icon != null)
-        //    {
-        //        // Convert to ImageSource so we can bind it
-        //        icon = new Icon(icon, 16, 16);
-
-        //        // You must create the ImageSource from within the UI thread
-        //        App.Current.Dispatcher.Invoke(() =>
-        //        {
-        //            this.Icon = Imaging.CreateBitmapSourceFromHIcon(
-        //                icon.Handle,
-        //                //System.Windows.Int32Rect.Empty,
-        //                new System.Windows.Int32Rect(0, 0, 16, 16),
-        //                System.Windows.Media.Imaging.BitmapSizeOptions.FromEmptyOptions());
-        //        });
-        //    }
-        //}
-
         protected ImageSource GetIconImageSource()
         {
-            string path = this.FilePath;
-
-            // Optimization: It helps if we know if the path is a directory or a file.
-            IconUtil.PathType? pathType = null;
+            // Folders are easy
             if (this is Folder)
-                pathType = IconUtil.PathType.Directory;
-            else if (this is Document)
-                pathType = IconUtil.PathType.File;
+                return IconCache.GetIconForFolder();
 
-            // Retrieve the icon for the file/folder represented by this Item
-            // NOTE: Default (path==null) is the Folder icon.
-            //Task.Factory.StartNew<Task<ImageSource>>(IconUtil.GetIconImageSourceForPathAsync(path, pathType), TaskCreationOptions.LongRunning);
-            return IconUtil.GetIconImageSourceForPath(path, pathType);
+            // Look up icon in cache
+            ImageSource source = IconCache.GetIconForFile(this.FilePath, onLoaded: () =>
+            {
+                // This will only get called if the icon needs to be loaded
+
+                // Force a re-fetch of the Icon property. The icon should now be loaded in the cache.
+                App.Current.Dispatcher.Invoke(() =>
+                {
+                    OnPropertyChanged(nameof(this.Icon));
+                });
+            });
+
+            // This may be null if icon is not yet available.
+            return source; 
         }
 
         public void OpenItem()

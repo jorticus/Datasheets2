@@ -106,40 +106,5 @@ namespace Datasheets2
                 return null;
             }
         }
-
-
-        static Dictionary<string, ImageSource> iconImageCache = new Dictionary<string, ImageSource>();
-
-        public static ImageSource GetIconImageSourceForPath(string path, PathType? pathType = null)
-        {
-            ImageSource source = null;
-
-            // First try the cache
-            if (iconImageCache.TryGetValue(path, out source))
-            {
-                return source;
-            }
-
-            // Otherwise, retrieve the icon
-            var icon = IconUtil.GetIconForPathAsync(path, IconUtil.IconSize.SmallIcon, pathType).Result;  // Blocking
-
-            //if (pathType != IconUtil.PathType.File)
-            //    return null;
-            //var icon = System.Drawing.Icon.ExtractAssociatedIcon(path); // Only returns 32x32 icon
-
-            if (icon != null)
-            {
-                // Convert to ImageSource so we can bind it
-                source = Imaging.CreateBitmapSourceFromHIcon(
-                    icon.Handle,
-                    //System.Windows.Int32Rect.Empty,
-                    new System.Windows.Int32Rect(0, 0, 16, 16),
-                    System.Windows.Media.Imaging.BitmapSizeOptions.FromEmptyOptions());
-
-                iconImageCache[path] = source;
-            }
-
-            return source;
-        }
     }
 }
