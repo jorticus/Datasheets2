@@ -89,9 +89,27 @@ namespace Datasheets2
             // (Doesn't work if I set in the constructor)
             this.tree.DataContext = this;
 
+            Database.PropertyChanged += Database_PropertyChanged;
+
             await Database.LoadAsync(App.Current.DocumentsDir);
 
             txtSearchBox.Focus();
+        }
+
+        private void Database_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(Database.Filter))
+            {
+                OnDatabaseFilterChanged(Database.Filter);
+            }
+        }
+
+        private void OnDatabaseFilterChanged(string filter)
+        {
+            if (String.IsNullOrEmpty(filter))
+            {
+                //tree.TreeView.
+            }
         }
 
         private void TextBox_KeyUp(object sender, KeyEventArgs e)
@@ -129,12 +147,6 @@ namespace Datasheets2
                     e.Handled = true;
                 }
             }
-        }
-
-
-        private void Button_Click(object sender, RoutedEventArgs e)
-        {
-            Filter();
         }
 
         private void Search_Closed(object sender, EventArgs e)

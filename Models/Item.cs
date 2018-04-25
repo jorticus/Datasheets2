@@ -29,11 +29,13 @@ namespace Datasheets2.Models
 
     public class Item : IItem, INotifyPropertyChanged
     {
+        private bool _isSelected = false;
+        private bool _isVisible = true;
         private string filePath;
 
         public Item(string filePath, string label = null)
         {
-            this._label = label;
+            this._label = label ?? System.IO.Path.GetFileNameWithoutExtension(filePath);
             this.filePath = filePath;
 
             //var iconLoadTask = Task.Factory.StartNew(async () => {
@@ -48,7 +50,7 @@ namespace Datasheets2.Models
         private string _label;
         public string Label
         {
-            get { return _label ?? System.IO.Path.GetFileNameWithoutExtension(filePath); }
+            get { return _label; }
             set { _label = value; OnPropertyChanged("Label"); }
         }
 
@@ -61,6 +63,24 @@ namespace Datasheets2.Models
 
         private Lazy<ImageSource> _lazyicon;
         public ImageSource Icon { get { return _lazyicon.Value; } }
+
+        /// <summary>
+        /// Bound to the TreeViewItem's IsSelected property
+        /// </summary>
+        public bool IsSelected
+        {
+            get { return _isSelected; }
+            set { bool x = _isSelected; _isSelected = value; if (x != value) { OnPropertyChanged("IsSelected"); } }
+        }
+
+        /// <summary>
+        /// If false, this item will be filtered out and not displayed in the UI
+        /// </summary>
+        public bool IsVisible
+        {
+            get { return _isVisible; }
+            set { bool x = _isVisible; _isVisible = value; if (x != value) { OnPropertyChanged("IsVisible"); } }
+        }
 
         protected void ResetIcon()
         {
@@ -75,7 +95,7 @@ namespace Datasheets2.Models
         //    private set { _icon = value; OnPropertyChanged("Icon"); }
         //}
 
-        public bool Filter(string filter)
+        public bool FilterResult(string filter)
         {
             return Label.ToLowerInvariant().Contains(filter.ToLowerInvariant());
         }
@@ -124,22 +144,8 @@ namespace Datasheets2.Models
 
             // Retrieve the icon for the file/folder represented by this Item
             // NOTE: Default (path==null) is the Folder icon.
-            var icon = IconUtil.GetIconForPathAsync(path, IconUtil.IconSize.SmallIcon, pathType).Result; // Blocking
-
-            //if (pathType != IconUtil.PathType.File)
-            //    return null;
-            //var icon = System.Drawing.Icon.ExtractAssociatedIcon(path); // Only returns 32x32 icon
-
-            if (icon != null)
-            {
-                // Convert to ImageSource so we can bind it
-                return Imaging.CreateBitmapSourceFromHIcon(
-                    icon.Handle,
-                    //System.Windows.Int32Rect.Empty,
-                    new System.Windows.Int32Rect(0, 0, 16, 16),
-                    System.Windows.Media.Imaging.BitmapSizeOptions.FromEmptyOptions());
-            }
-            return null;
+            //Task.Factory.StartNew<Task<ImageSource>>(IconUtil.GetIconImageSourceForPathAsync(path, pathType), TaskCreationOptions.LongRunning);
+            return IconUtil.GetIconImageSourceForPath(path, pathType);
         }
 
         public void OpenItem()

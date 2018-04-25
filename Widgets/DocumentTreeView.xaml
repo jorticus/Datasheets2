@@ -11,6 +11,7 @@
              x:Name="root"
              d:DesignHeight="300" d:DesignWidth="300">
     <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
 
         <Style x:Key="DefaultMenuItemStyle" TargetType="{x:Type MenuItem}">
             <Setter Property="FontWeight" Value="Bold"/>
@@ -233,7 +234,11 @@
             <TreeView.ItemContainerStyle>
                 <Style TargetType="{x:Type TreeViewItem}">
                     <Setter Property="Margin" Value="0,1,0,0"/>
-                    
+                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                    <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
+                    <Setter Property="Visibility" Value="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                    <!--<Setter Property="Visibility" Value="{Binding Visibility}"/>-->
+
                     <!--
                     Things bound to TreeViewItems (instead of the TreeView itself)
                     -->

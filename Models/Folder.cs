@@ -11,8 +11,27 @@ namespace Datasheets2.Models
 {
     public class Folder : Item
     {
+        private bool _isExpanded = false;
+        private string _filter;
         private ObservableCollection<IItem> _items;
         private FileSystemWatcher fsWatcher;
+
+        public string Filter
+        {
+            get { return _filter; }
+            set { _filter = value; ApplyFilter(value); }
+        }
+
+        public int VisibleItems { get; private set; }
+
+        /// <summary>
+        /// Bound to the TreeViewItem's IsExpanded property
+        /// </summary>
+        public bool IsExpanded
+        {
+            get { return _isExpanded; }
+            set { _isExpanded = value; OnPropertyChanged("IsExpanded"); }
+        }
 
         /// <summary>
         /// An observable collection of child items
@@ -41,7 +60,7 @@ namespace Datasheets2.Models
         /// <returns></returns>
         private IEnumerable<IItem> GetFilteredDocuments(string filter)
         {
-            return Documents.Where(x => x.Filter(filter)).Select(x => (IItem)x);
+            return Documents.Where(x => x.FilterResult(filter)).Select(x => (IItem)x);
         }
 
         /// <summary>
@@ -51,18 +70,20 @@ namespace Datasheets2.Models
         /// <returns></returns>
         private IEnumerable<IItem> GetFilteredFoldersFlattened(string filter)
         {
-            return Folders.SelectMany(x => x.GetFilteredItems(filter));
+            return Folders.SelectMany(x => x.GetFilteredItems(filter, flatten: true));
         }
 
         /// <summary>
         /// Return a list of virtualized Folders with the specified filter applied.
-        /// Folders that result in empty contents are omitted.
+        /// Folders that result in empty contents are omitted, if it is a leaf.
         /// Not observable.
         /// </summary>
         /// <param name="filter">Filtering string</param>
         /// <returns></returns>
         private IEnumerable<IItem> GetFilteredFoldersVirtual(string filter)
         {
+            // TODO: Keep folders that have child folders that are not empty
+            // TODO: Avoid using this - creating new virtual folders will lose the state of IsExpanded/IsSelected
             return Folders.Select(x => {
                 var filtereddocs = x.GetFilteredItems(filter);
                 return (filtereddocs.Count() > 0) ? new Folder(x, filtereddocs) : null;
@@ -114,6 +135,40 @@ namespace Datasheets2.Models
             : base(other.FilePath, label:other.Label)
         {
             this.Items = new ObservableCollection<IItem>(items);
+        }
+
+        /// <summary>
+        /// Apply a filter to the folder and it's sub items,
+        /// hiding items that don't match.
+        /// </summary>
+        /// <param name="filter"></param>
+        public void ApplyFilter(string filter)
+        {
+            // Filter documents/files
+            VisibleItems = 0;
+            foreach (var doc in Documents)
+            {
+                bool visible = (doc.FilterResult(filter));
+                doc.IsVisible = visible; // TODO: This is an expensive operation
+                if (visible) VisibleItems++;
+            }
+
+            // Filter subfolders
+            foreach (var folder in Folders)
+            {
+                folder.ApplyFilter(filter);
+                VisibleItems += folder.VisibleItems;
+
+                // Expand the node if it contains matches.
+                if (folder.VisibleItems > 0)
+                    folder.IsExpanded = true;
+            }
+
+            // Hide this folder if it contains no visible items after filtering
+            this.IsVisible = (VisibleItems > 0);
+
+            // Force update of Items
+            //OnPropertyChanged(nameof(this.Items));
         }
 
         protected static IEnumerable<IItem> ScanPath(string path)

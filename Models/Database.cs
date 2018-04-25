@@ -22,6 +22,7 @@ namespace Datasheets2.Models
         {
             Root = new Folder(path);
             await Root.LoadAsync();
+            OnPropertyChanged("Items");
         }
 
         public Task RefreshAsync()
@@ -50,12 +51,16 @@ namespace Datasheets2.Models
         public IEnumerable<IItem> Items
         {
             get { return GetFilteredItems(); }
+            //get { return Root?.Items; }
         }
 
         protected void ApplyFilter()
         {
+            if (Root != null)
+                Root.Filter = this.Filter;
+
             // Force property update of Items
-            OnPropertyChanged("Items");
+            //OnPropertyChanged("Items");
         }
 
         protected IEnumerable<IItem> GetFilteredItems()
@@ -66,7 +71,13 @@ namespace Datasheets2.Models
             }
             else
             {
-                return Root?.GetFilteredItems(_filter, flatten: true);
+                // Present items as a flat list with no folders
+                //return Root?.GetFilteredItems(_filter, flatten: true);
+
+                // Present items as a heirarchical list, with empty leaf folders removed
+                //return Root?.GetFilteredItems(_filter, flatten: false);
+
+                return Root?.Items;
             }
         }
 
