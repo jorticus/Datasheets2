@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace Datasheets2
 {
@@ -242,6 +245,54 @@ namespace Datasheets2
             // https://stackoverflow.com/questions/309485/c-sharp-sanitize-file-name
             var invalidChars = System.IO.Path.GetInvalidFileNameChars();
             return String.Join(replacement, filename.Split(invalidChars, StringSplitOptions.RemoveEmptyEntries)).TrimEnd('.');
+        }
+        
+        public static void CreateUrlFile(Uri url, string name, string destpath, string description = null)
+        {
+            destpath = Path.Combine(destpath, Path.GetFileName(name + ".url"));
+
+            using (StreamWriter writer = new StreamWriter(destpath))
+            {
+                writer.WriteLine("[InternetShortcut]");
+                writer.WriteLine("URL=" + url.AbsoluteUri);
+                writer.Flush();
+            }
+        }
+
+        public static void ExtractUrlFileFromDrop(DragEventArgs e, string destdir)
+        {
+            // https://www.codeproject.com/Articles/11018/Drag-and-Drop-Internet-Shortcuts-from-Windows-Form
+
+            string title = null;
+
+            // Read URL descriptor
+            {
+                var descstream = (System.IO.MemoryStream)e.Data.GetData("FileGroupDescriptor");
+                if (descstream != null && descstream.Length == 336)
+                {
+                    var buffer = new byte[descstream.Length];
+                    descstream.Read(buffer, 0, (int)descstream.Length);
+                    title = Encoding.ASCII.GetString(buffer.Skip(76).ToArray()).Trim('\0');
+                }
+            }
+
+            // Sanitize
+            title = Path.GetFileName(title).Replace("\\", "").Replace("/", "");
+
+            destdir = Path.Combine(destdir, title);
+
+            // Read URL file body and write to file
+            var stream = (System.IO.MemoryStream)e.Data.GetData("FileContents");
+            if (stream != null)
+            {
+                var buffer = new byte[stream.Length];
+                stream.Read(buffer, 0, (int)stream.Length);
+
+                using (var fs = new FileStream(destdir, FileMode.CreateNew))
+                {
+                    fs.Write(buffer, 0, (int)stream.Length);
+                }
+            }
         }
     }
 }

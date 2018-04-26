@@ -236,14 +236,15 @@ namespace Datasheets2.Widgets
         private bool _dragInProgress = false;
         private TreeViewItem _selectionBeforeDrag = null;
 
-        private Tuple<DragDropEffects, string[]> tree_DragOperation(object sender, DragEventArgs e)
+        private Tuple<DragDropEffects, string[], Uri> tree_DragOperation(object sender, DragEventArgs e)
         {
             // Default: Deny drop
             DragDropEffects operation = DragDropEffects.None;
-            bool supported = true;
+            bool supported = false;
+            //string desc = "";
 
             var filenames = e.Data.GetData(DataFormats.FileDrop, true) as string[];
-            if (filenames.Length != 0)
+            if (filenames != null && filenames.Length != 0)
             {
                 //if (SUPPORTED_FILE_EXTS != null)
                 //{
@@ -252,41 +253,88 @@ namespace Datasheets2.Widgets
                 //    supported = filetypes.All(ext => SUPPORTED_FILE_EXTS.Contains(ext));
                 //}
 
-                string desc = (filenames.Length == 1) ?
-                    $"{System.IO.Path.GetFileName(filenames[0])}" :
-                    //"1 file" :
-                    $"{filenames.Length} files";
+                //desc = (filenames.Length == 1) ?
+                //    $"{System.IO.Path.GetFileName(filenames[0])}" :
+                //    //"1 file" :
+                //    $"{filenames.Length} files";
 
-                // We support this operation, figure out if it's a copy/move/link operation
-                if (supported)
+                supported = true;
+
+                // Default operation:
+                operation = DragDropEffects.Copy;
+            }
+
+            // No files dropped, maybe it was a URL?
+            Uri uri = null;
+            if (!supported)
+            {
+                //if (e.Data.GetData("FileGroupDescriptor") != null && e.Data.GetData("FileContents") != null)
+                //{
+                //    supported = true;
+
+                //    // Default operation:
+                //    operation = DragDropEffects.Link;
+                //}
+
+                var text = (string)e.Data.GetData(DataFormats.Text, true);
+
+                if (Uri.TryCreate(text, UriKind.Absolute, out uri))
                 {
-                    // Standard windows override keys:
-                    // CTRL  : Copy
-                    // SHIFT : Move
-                    // ALT   : Link
+                    supported = true;
 
-                    bool moveAllowed = ((e.AllowedEffects & DragDropEffects.Move) == DragDropEffects.Move);
-                    bool copyAllowed = ((e.AllowedEffects & DragDropEffects.Copy) == DragDropEffects.Copy);
-                    bool linkAllowed = ((e.AllowedEffects & DragDropEffects.Link) == DragDropEffects.Link);
-
-                    bool ctrlPressed = (e.KeyStates & DragDropKeyStates.ControlKey) == DragDropKeyStates.ControlKey;
-                    bool shiftPressed = (e.KeyStates & DragDropKeyStates.ShiftKey) == DragDropKeyStates.ShiftKey;
-
-                    if (moveAllowed && shiftPressed)
-                    {
-                        // Move if SHIFT pressed
-                        operation = DragDropEffects.Move;
-                        //dropText.Text = $"Move {desc} to {App.Current.DocumentsDir}";
-                    }
-                    else if (copyAllowed)
-                    {
-                        operation = DragDropEffects.Copy;
-                        //dropText.Text = $"Copy {desc} to {App.Current.DocumentsDir}";
-                    }
+                    // Default operation:
+                    operation = DragDropEffects.Link;
                 }
             }
-            
-            return new Tuple<DragDropEffects, string[]>(operation, filenames);
+
+
+            // We support this operation, figure out if it's a copy/move/link operation
+            if (supported)
+            {
+                // Standard windows override keys:
+                // CTRL  : Copy
+                // SHIFT : Move
+                // ALT   : Link
+
+                bool moveAllowed = ((e.AllowedEffects & DragDropEffects.Move) == DragDropEffects.Move);
+                bool copyAllowed = ((e.AllowedEffects & DragDropEffects.Copy) == DragDropEffects.Copy);
+                bool linkAllowed = false;// ((e.AllowedEffects & DragDropEffects.Link) == DragDropEffects.Link);
+
+                bool ctrlPressed = (e.KeyStates & DragDropKeyStates.ControlKey) == DragDropKeyStates.ControlKey;
+                bool shiftPressed = (e.KeyStates & DragDropKeyStates.ShiftKey) == DragDropKeyStates.ShiftKey;
+                bool altPressed = (e.KeyStates & DragDropKeyStates.AltKey) == DragDropKeyStates.AltKey;
+
+                // Override operation if modifier key pressed
+                if (shiftPressed && moveAllowed)
+                {
+                    operation = DragDropEffects.Move;
+                }
+                else if (ctrlPressed && copyAllowed)
+                {
+                    operation = DragDropEffects.Copy;
+                }
+                else if (altPressed && linkAllowed)
+                {
+                    operation = DragDropEffects.Link;
+                }
+
+                //switch (operation)
+                //{
+                //    case DragDropEffects.Copy:
+                //        dropText.Text = $"Copy {desc} to {App.Current.DocumentsDir}";
+                //        break;
+
+                //    case DragDropEffects.Move:
+                //        dropText.Text = $"Move {desc} to {App.Current.DocumentsDir}";
+                //        break;
+
+                //    case DragDropEffects.Link:
+                //        dropText.Text = $"Create link to {desc}";
+                //        break;
+                //}
+            }
+
+            return new Tuple<DragDropEffects, string[], Uri>(operation, filenames, uri);
         }
 
         private void tree_DragOver(object sender, DragEventArgs e)
@@ -372,8 +420,10 @@ namespace Datasheets2.Widgets
             var result = tree_DragOperation(sender, e);
             var operation = result.Item1;
             var srcfiles = result.Item2;
+            var srcuri = result.Item3;
 
-            if (srcfiles.Length == 0)
+            // Nothing dropped
+            if ((srcfiles == null || srcfiles.Length == 0) && (srcuri == null))
                 return;
 
             // Default to the library root
@@ -396,21 +446,47 @@ namespace Datasheets2.Widgets
             // Otherwise this doesn't get called if you drop
             tree_DragLeaveForReal(sender, e);
 
-            switch (operation)
+            if (srcfiles != null && srcfiles.Length > 0)
             {
-                case DragDropEffects.Copy:
-                    await ShellOperation.SHFileOperationAsync(ShellOperation.FileOperation.Copy, srcfiles.ToArray(), destdir);
-                    //await Database.RefreshAsync();
-                    break;
+                switch (operation)
+                {
+                    case DragDropEffects.Copy:
+                        await ShellOperation.SHFileOperationAsync(ShellOperation.FileOperation.Copy, srcfiles.ToArray(), destdir);
+                        //await Database.RefreshAsync();
+                        break;
 
-                case DragDropEffects.Move:
-                    await ShellOperation.SHFileOperationAsync(ShellOperation.FileOperation.Move, srcfiles.ToArray(), destdir);
-                    //await Database.RefreshAsync();
-                    break;
+                    case DragDropEffects.Move:
+                        await ShellOperation.SHFileOperationAsync(ShellOperation.FileOperation.Move, srcfiles.ToArray(), destdir);
+                        //await Database.RefreshAsync();
+                        break;
 
-                default:
-                    // Not supported
-                    break;
+                    default:
+                        // Not supported
+                        throw new NotImplementedException($"{operation} operation not supported");
+                }
+            }
+            else if (srcuri != null)
+            {
+                if (operation == DragDropEffects.Link)
+                {
+                    if (e.Data.GetData("FileGroupDescriptor") != null)
+                    {
+                        ShellOperation.ExtractUrlFileFromDrop(e, destdir);
+                    }
+                    else
+                    {
+                        //ShellOperation.CreateShellLink(srcuri, "title", destdir);
+                        throw new InvalidOperationException("Unsupported URL drop");
+                    }
+                }
+                else
+                {
+                    throw new NotImplementedException($"{operation} operation not supported");
+                }
+            }
+            else
+            {
+                throw new InvalidOperationException("Invalid drop operation");
             }
 
             e.Handled = true;
