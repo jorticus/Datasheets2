@@ -151,7 +151,7 @@ namespace Datasheets2.Models
                 _filteredItems = sourceItems.Filter(item =>
                 {
                     if (item is Folder)
-                        return (((Folder)item).VisibleItems > 0);
+                        return (((Folder)item).Items.Count > 0);
                     else
                         return item.Label.ToLowerInvariant().Contains(filter);
                        
