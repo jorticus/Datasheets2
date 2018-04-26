@@ -13,13 +13,20 @@ namespace Datasheets2.Models
     {
         private bool _isExpanded = false;
         private string _filter;
-        private ObservableCollection<IItem> _items;
+        private FilteredObservableCollection<IItem> _items;
+        private FilteredObservableCollection<IItem> _filteredItems;
         private FileSystemWatcher fsWatcher;
 
         public string Filter
         {
             get { return _filter; }
-            set { _filter = value; ApplyFilter(value); }
+            set
+            {
+                _filter = value;
+                ApplyFilter(value);
+                OnPropertyChanged(nameof(Items));
+                OnPropertyChanged(nameof(IsExpanded));
+            }
         }
 
         public int VisibleItems { get; private set; }
@@ -29,17 +36,17 @@ namespace Datasheets2.Models
         /// </summary>
         public bool IsExpanded
         {
-            get { return _isExpanded; }
-            set { _isExpanded = value; OnPropertyChanged("IsExpanded"); }
+            get { return _isExpanded || !string.IsNullOrEmpty(_filter); }
+            set { _isExpanded = value; OnPropertyChanged(nameof(IsExpanded)); }
         }
 
         /// <summary>
         /// An observable collection of child items
         /// </summary>
-        public ObservableCollection<IItem> Items
+        public FilteredObservableCollection<IItem> Items
         {
-            get { return _items; }
-            set { _items = value; OnPropertyChanged("Items"); }
+            get { return GetFilteredObservableCollection(_filter, _items); }
+            set { _items = value; _filteredItems = value; OnPropertyChanged(nameof(Items)); }
         }
 
         /// <summary>
@@ -53,6 +60,7 @@ namespace Datasheets2.Models
         public IEnumerable<Document> Documents { get { return _items.Where(x => x is Document).Select(x => (Document)x); } }
 
 
+        /*
         /// <summary>
         /// Return a list of documents filtered by the specified filter.
         /// </summary>
@@ -115,11 +123,51 @@ namespace Datasheets2.Models
                 return subfolders.Concat(filtereddocs);
             }
         }
+        */
 
-        public Folder(string filePath, ObservableCollection<IItem> items = null) :
+        /// <summary>
+        /// Filter the observable collection as needed.
+        /// This may return a new observable collection which will not observe
+        /// the events of the original collection until the filter is cleared.
+        /// </summary>
+        /// <param name="filter"></param>
+        /// <param name="sourceItems"></param>
+        /// <returns></returns>
+        private FilteredObservableCollection<IItem> GetFilteredObservableCollection(string filter, FilteredObservableCollection<IItem> sourceItems)
+        {
+            if (sourceItems == null)
+                return null;
+
+            if (string.IsNullOrEmpty(filter))
+            {
+                _filteredItems = sourceItems;
+                return sourceItems;
+            }
+            else
+            {
+                filter = filter.ToLowerInvariant();
+
+                // Filter items to the filtering string
+                _filteredItems = sourceItems.Filter(item =>
+                {
+                    if (item is Folder)
+                        return (((Folder)item).VisibleItems > 0);
+                    else
+                        return item.Label.ToLowerInvariant().Contains(filter);
+                       
+                });
+
+                // Update the count of visible items (includes both documents & visible sub folders)
+                this.VisibleItems = _filteredItems.Count();
+
+                return _filteredItems;
+            }
+        }
+
+        public Folder(string filePath) :
             base(filePath)
         {
-            this.Items = items ?? new ObservableCollection<IItem>();
+            this.Items = new FilteredObservableCollection<IItem>();
             this.fsWatcher = null;
         }
 
@@ -134,7 +182,7 @@ namespace Datasheets2.Models
         public Folder(Folder other, IEnumerable<IItem> items)
             : base(other.FilePath, label:other.Label)
         {
-            this.Items = new ObservableCollection<IItem>(items);
+            this.Items = new FilteredObservableCollection<IItem>(items);
         }
 
         /// <summary>
@@ -142,33 +190,28 @@ namespace Datasheets2.Models
         /// hiding items that don't match.
         /// </summary>
         /// <param name="filter"></param>
-        public void ApplyFilter(string filter)
+        private void ApplyFilter(string filter)
         {
-            // Filter documents/files
             VisibleItems = 0;
-            foreach (var doc in Documents)
-            {
-                bool visible = (doc.FilterResult(filter));
-                doc.IsVisible = visible; // TODO: This is an expensive operation
-                if (visible) VisibleItems++;
-            }
 
             // Filter subfolders
             foreach (var folder in Folders)
             {
-                folder.ApplyFilter(filter);
-                VisibleItems += folder.VisibleItems;
-
-                // Expand the node if it contains matches.
-                if (folder.VisibleItems > 0)
-                    folder.IsExpanded = true;
+                folder.Filter = filter;
+                //VisibleItems += folder.VisibleItems;
             }
 
+            // TODO: if VisibleItems == 0, hide this folder from view.
             // Hide this folder if it contains no visible items after filtering
-            this.IsVisible = (VisibleItems > 0);
+            //this.IsVisible = (VisibleItems > 0);
 
             // Force update of Items
             //OnPropertyChanged(nameof(this.Items));
+            //VisibleItems += this._filteredItems.Count;
+
+            // Expand the node if it contains matches.
+            //if (VisibleItems > 0)
+            //    IsExpanded = true;
         }
 
         protected static IEnumerable<IItem> ScanPath(string path)

@@ -68,14 +68,20 @@ namespace Datasheets2.Models
             set { bool x = _isSelected; _isSelected = value; if (x != value) { OnPropertyChanged("IsSelected"); } }
         }
 
+        protected void ResetIcon()
+        {
+            // Force re-fetch of icon
+            OnPropertyChanged("Icon");
+        }
+
         /// <summary>
         /// If false, this item will be filtered out and not displayed in the UI
         /// </summary>
-        public bool IsVisible
-        {
-            get { return _isVisible; }
-            set { bool x = _isVisible; _isVisible = value; if (x != value) { OnPropertyChanged("IsVisible"); } }
-        }
+        //public bool IsVisible
+        //{
+        //    get { return _isVisible; }
+        //    set { bool x = _isVisible; _isVisible = value; if (x != value) { OnPropertyChanged("IsVisible"); } }
+        //}
 
         public bool FilterResult(string filter)
         {
@@ -87,7 +93,7 @@ namespace Datasheets2.Models
             return Label;
         }
 
-        protected ImageSource GetIconImageSource()
+        private ImageSource GetIconImageSource()
         {
             // Folders are easy
             if (this is Folder)

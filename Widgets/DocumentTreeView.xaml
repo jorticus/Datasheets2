@@ -236,7 +236,7 @@
                     <Setter Property="Margin" Value="0,1,0,0"/>
                     <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
                     <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
-                    <Setter Property="Visibility" Value="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                    <!--<Setter Property="Visibility" Value="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>-->
                     <!--<Setter Property="Visibility" Value="{Binding Visibility}"/>-->
 
                     <!--
