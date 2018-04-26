@@ -169,6 +169,7 @@
             AllowDrop="True"
             DragEnter="tree_DragOver"
             DragLeave="tree_DragLeave"
+            DragOver="tree_DragOver"
             Drop="tree_Drop"
             VirtualizingPanel.IsVirtualizing="True"
             ContextMenu="{StaticResource MainContextMenu}"

@@ -257,28 +257,35 @@ namespace Datasheets2.Widgets
                     //"1 file" :
                     $"{filenames.Length} files";
 
-                // We support this operation, figure out if it's a copy or move operation
-                // (linking not supported)
+                // We support this operation, figure out if it's a copy/move/link operation
                 if (supported)
                 {
+                    // Standard windows override keys:
+                    // CTRL  : Copy
+                    // SHIFT : Move
+                    // ALT   : Link
+
                     bool moveAllowed = ((e.AllowedEffects & DragDropEffects.Move) == DragDropEffects.Move);
                     bool copyAllowed = ((e.AllowedEffects & DragDropEffects.Copy) == DragDropEffects.Copy);
+                    bool linkAllowed = ((e.AllowedEffects & DragDropEffects.Link) == DragDropEffects.Link);
 
                     bool ctrlPressed = (e.KeyStates & DragDropKeyStates.ControlKey) == DragDropKeyStates.ControlKey;
+                    bool shiftPressed = (e.KeyStates & DragDropKeyStates.ShiftKey) == DragDropKeyStates.ShiftKey;
 
-                    if (copyAllowed && ctrlPressed)
+                    if (moveAllowed && shiftPressed)
+                    {
+                        // Move if SHIFT pressed
+                        operation = DragDropEffects.Move;
+                        //dropText.Text = $"Move {desc} to {App.Current.DocumentsDir}";
+                    }
+                    else if (copyAllowed)
                     {
                         operation = DragDropEffects.Copy;
                         //dropText.Text = $"Copy {desc} to {App.Current.DocumentsDir}";
                     }
-                    else if (moveAllowed)
-                    {
-                        operation = DragDropEffects.Move;
-                        //dropText.Text = $"Move {desc} to {App.Current.DocumentsDir}";
-                    }
                 }
             }
-
+            
             return new Tuple<DragDropEffects, string[]>(operation, filenames);
         }
 
