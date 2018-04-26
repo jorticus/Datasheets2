@@ -10,6 +10,14 @@ namespace Datasheets2
 {
     public class IconCache
     {
+        // These filetypes have unique icons, so we cannot cache per-filetype
+        private static readonly string[] DynamicFileTypes = new string[]
+        {
+            ".exe",
+            ".ico",
+            ".url",
+        };
+
         // Internal struct for keeping track of icon loading state
         struct LoadTaskState
         {
@@ -39,7 +47,7 @@ namespace Datasheets2
             string ext = System.IO.Path.GetExtension(path).ToLowerInvariant();
 
             // These filetypes have unique icons, so we cannot cache per-filetype
-            if (ext == ".exe")
+            if (DynamicFileTypes.Contains(ext))
                 return path;
 
             return ext;
