@@ -104,6 +104,18 @@ namespace Datasheets2
         [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
         private static extern int SHFileOperation([In] ref SHFILEOPSTRUCT lpFileOp);
 
+        /// <summary>
+        /// Move/Copy a directory to destination directory
+        /// </summary>
+        /// <remarks>
+        /// If you pass a file in srcpath, it may or may not be treated as a directory.
+        /// To remove ambiguity you should use one of the other overloads that take a string[].
+        /// </remarks>
+        /// <param name="operation">Shell operation to perform</param>
+        /// <param name="srcpath">Source file or directory</param>
+        /// <param name="destpath">Destination directory</param>
+        /// <param name="flags"></param>
+        /// <returns></returns>
         public static Task SHFileOperationAsync(FileOperation operation, string srcpath, string destpath, FILEOP_FLAGS flags = DEFAULT_FLAGS)
         {
             return Task.Factory.StartNew(() =>
@@ -120,11 +132,6 @@ namespace Datasheets2
                     lpszProgressTitle = null
                 };
 
-                // Implicit flags
-                flags |= FILEOP_FLAGS.FOF_ALLOWUNDO; // Allow the user to undo the operation in Explorer
-                flags |= FILEOP_FLAGS.FOF_NOCONFIRMMKDIR; // Silently create directories if necessary
-                                                          //flags |= FILEOP_FLAGS.FOF_RENAMEONCOLLISION; // Automatically rename on filename collision
-
                 int hr = SHFileOperation(ref fFileOpStruct);
 
                 // The error code is a standard Win32 error, with the exception of a handful of codes which mean specific things.
@@ -136,12 +143,28 @@ namespace Datasheets2
             }, TaskCreationOptions.LongRunning);
         }
 
+        /// <summary>
+        /// Move/Copy files to a destination directory
+        /// </summary>
+        /// <param name="operation">Shell operation to perform</param>
+        /// <param name="srcpath">Source file(s)</param>
+        /// <param name="destpath">Destination directory</param>
+        /// <param name="flags"></param>
+        /// <returns></returns>
         public static Task SHFileOperationAsync(FileOperation operation, string[] srcfiles, string destdir, FILEOP_FLAGS flags = DEFAULT_FLAGS)
         {
             var src = String.Concat(srcfiles.Select(f => f + '\0'));
             return SHFileOperationAsync(operation, src, destdir, flags);
         }
 
+        /// <summary>
+        /// Move/Copy/Rename files
+        /// </summary>
+        /// <param name="operation">Shell operation to perform</param>
+        /// <param name="srcpath">Source file(s)</param>
+        /// <param name="destpath">Destination file(s) - must match the number of source files</param>
+        /// <param name="flags"></param>
+        /// <returns></returns>
         public static Task SHFileOperationAsync(FileOperation operation, string[] srcfiles, string[] destfiles, FILEOP_FLAGS flags = DEFAULT_FLAGS)
         {
             var src = String.Concat(srcfiles.Select(f => f + '\0'));

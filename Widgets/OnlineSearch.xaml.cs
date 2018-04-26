@@ -314,7 +314,8 @@ namespace Datasheets2.Widgets
 
                 // Copy the temporary file into the library
                 await ShellOperation.SHFileOperationAsync(
-                    ShellOperation.FileOperation.Move, tmpfile, destfile);
+                    ShellOperation.FileOperation.Move,
+                    new string[] { tmpfile }, new string[] { destfile });
 
                 // FSWatcher should automatically pick up the new item when it's copied into the library directory
 
