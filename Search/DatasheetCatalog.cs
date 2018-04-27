@@ -56,7 +56,7 @@ namespace Datasheets2.Search
 
             
                 // "Datasheets found :: <N>"
-                var summary = html.DocumentNode.SelectSingleNode("/html/body/center/div[1]/center/table[2]/tr/td[2]/font/font[2]")?.InnerText;
+                var summary = html.DocumentNode.SelectSingleNode("/html/body/center/div[1]/center/table[1]/tr/td[2]/font/font[2]")?.InnerText;
                 int nResults = 0;
                 Int32.TryParse(summary, out nResults);
 
@@ -64,7 +64,7 @@ namespace Datasheets2.Search
                 if (nResults > 0)
                 {
                     // Table of results
-                    var table = html.DocumentNode.SelectNodes("/html/body/center/div[1]/center/table[3]/tr");
+                    var table = html.DocumentNode.SelectNodes("/html/body/center/div[1]/center/table[2]/tr");
 
                     // Skip header, enumerate rows
                     int count = 0;
