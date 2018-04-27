@@ -44,7 +44,7 @@ namespace Datasheets2
             ErrorHandler(e.Exception);
         }
 
-        public static void ErrorHandler(string message, string title = "Error", bool fatal = true)
+        public static async void ErrorHandler(string message, string title = "Error", bool fatal = true)
         {
             // Prevent showing more than one dialog
             if (dialogLock.Wait(0))
@@ -58,7 +58,8 @@ namespace Datasheets2
                 }
                 finally
                 {
-                   // dialogLock.Release();
+                    await Task.Delay(100);
+                    dialogLock.Release();
                 }
             }
         }

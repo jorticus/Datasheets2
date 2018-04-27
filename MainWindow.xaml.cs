@@ -116,7 +116,10 @@ namespace Datasheets2
         {
             if (e.Key == Key.Enter)
             {
-                StartSearch();
+                if (!string.IsNullOrWhiteSpace(txtSearchBox.Text))
+                {
+                    StartSearch();
+                }
             }
             else
             {
@@ -149,16 +152,24 @@ namespace Datasheets2
             }
         }
 
-        private void Search_Closed(object sender, EventArgs e)
+        // Called when search is closed after downloading an item to the library
+        // (Pressing the cancel button does not invoke this)
+        private async void Search_Closed(object sender, EventArgs e)
         {
             if (state == State.Search)
             {
-                //// Clear filter
-                //txtSearchBox.Text = "";
-                //Filter();
+                // Clear filter
+                txtSearchBox.Text = "";
+                Filter();
 
-                // TODO: Maybe select the item that was just added?
                 CancelSearch();
+
+                // Shift focus to the search field
+                txtSearchBox.Focus();
+
+                // Refresh contents
+                await Task.Delay(100); // Workaround - might take a few ticks for the file to appear
+                await Database.RefreshAsync();
             }
         }
 
@@ -216,8 +227,6 @@ namespace Datasheets2
                 state = State.TreeView;
                 search.CancelSearch();
 
-                // Clear filter
-                txtSearchBox.Text = "";
                 Filter();
 
                 tree.Visibility = Visibility.Visible;

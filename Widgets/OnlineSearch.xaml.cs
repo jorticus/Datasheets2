@@ -110,18 +110,7 @@ namespace Datasheets2.Widgets
         {
             try
             {
-                try
-                {
-                    await searchManager.SearchAsync(query, ct);
-                }
-                catch (WebException ex)
-                {
-                    App.ErrorHandler(ex.ToString(), "HTTP Error", fatal: false);
-                }
-                catch (Exception ex)
-                {
-                    App.ErrorHandler(ex, fatal: false);
-                }
+                await searchManager.SearchAsync(query, ct);
             }
             finally
             {
