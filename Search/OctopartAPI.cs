@@ -64,8 +64,17 @@ namespace Datasheets2.Search
                     {
                         var dsMimeType = datasheet.Value<string>("mimetype");
                         var dsUrl = datasheet.Value<string>("url");
-                        var dsSize = datasheet.Value<JToken>("metadata")?.Value<int>("size_bytes");
-                        var dsPages = datasheet.Value<JToken>("metadata")?.Value<int>("num_pages");
+
+                        // Metadata may or may not be present
+                        var dsMetadata = datasheet.Value<JToken>("metadata");
+                        int? dsSize = null;
+                        int? dsPages = null;
+                        if (dsMetadata.HasValues)
+                        {
+                            dsSize = dsMetadata.Value<int>("size_bytes");
+                            dsPages = dsMetadata.Value<int>("num_pages");
+                        }
+
                         var dsSource = datasheet.Value<JToken>("attribution")?.Value<JToken>("sources")?.First;
                         var dsSourceName = dsSource?.Value<string>("name");
 
