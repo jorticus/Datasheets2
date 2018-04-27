@@ -106,9 +106,10 @@ namespace Datasheets2
 
         private void OnDatabaseFilterChanged(string filter)
         {
-            if (String.IsNullOrEmpty(filter))
+            if (!String.IsNullOrEmpty(filter))
             {
-                //tree.TreeView.
+                // TODO: Might be best to de-select here.
+                //tree.SelectFirst();
             }
         }
 
@@ -118,7 +119,22 @@ namespace Datasheets2
             {
                 if (!string.IsNullOrWhiteSpace(txtSearchBox.Text))
                 {
-                    StartSearch();
+                    // Search online if no items matched the filter
+                    if (Database.Root.VisibleItems == 0)
+                    {
+                        StartSearch();
+                    }
+                    else
+                    {
+                        // Else open the first matching item
+                        //if (tree.SelectedItem == null)
+                        {
+                            tree.SelectFirstDocument();
+                        }
+
+                        tree.Focus();
+                        tree.SelectedItem?.OpenItem();
+                    }
                 }
             }
             else
@@ -133,7 +149,8 @@ namespace Datasheets2
             // If pressing down, shift focus to the first element in the tree view
             if (e.Key == Key.Down)
             {
-                tree.FocusAndSelectFirst();
+                tree.Focus();
+                tree.SelectFirst();
                 e.Handled = true;
             }
         }

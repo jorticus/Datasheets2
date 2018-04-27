@@ -62,13 +62,54 @@ namespace Datasheets2.Widgets
 
         public TreeView TreeView { get { return tree; } }
 
-        public void FocusAndSelectFirst()
+        public IItem SelectedItem { get { return (tree.SelectedItem as IItem); } }
+
+        public new void Focus()
         {
             tree.Focus();
+        }
 
+        public void SelectFirst()
+        {
+            //tree.Focus();
+            
             var firstItem = (TreeViewItem)tree.ItemContainerGenerator.ContainerFromIndex(0);
             if (firstItem != null)
                 firstItem.IsSelected = true;
+        }
+
+        public void SelectFirstDocument()
+        {
+            var treeViewItem = GetFirstDocument(tree);
+            if (treeViewItem != null)
+                treeViewItem.IsSelected = true;
+        }
+
+        private TreeViewItem GetFirstDocument(ItemsControl tree)
+        {
+            for (int i = 0; i < tree.ItemContainerGenerator.Items.Count; i++)
+            {
+                var treeViewItem = (TreeViewItem)tree.ItemContainerGenerator.ContainerFromIndex(i);
+                if (treeViewItem != null)
+                {
+                    if (treeViewItem.DataContext is Models.Document)
+                    {
+                        return treeViewItem;
+                    }
+                    else
+                    {
+                        // This is a Folder, recurse into it (depth-first)
+                        treeViewItem = GetFirstDocument(treeViewItem);
+                        if (treeViewItem != null)
+                        {
+                            // If this is not null, it's guaranteed to be a Document
+                            return treeViewItem;
+                        }
+                    }
+                }
+            }
+
+            return null;
         }
 
         public void UnfocusTree()
@@ -116,13 +157,14 @@ namespace Datasheets2.Widgets
         private void tree_KeyUp(object sender, KeyEventArgs e)
         {
             // Ignore any key presses if tree doesn't have focus (eg. context menu is open)
-            if (!(sender as TreeView).IsFocused)
-                return;
+            // TODO: BUG: This is always false??
+            //if (!(sender as TreeView).IsFocused)
+            //    return;
 
             // Handle enter on tree view item
             if (e.Key == Key.Enter)
             {
-                var item = (sender as TreeView)?.SelectedItem as IItem;
+                var item = this.SelectedItem;
                 if (item != null)
                     item.OpenItem();
             }
