@@ -21,6 +21,10 @@ namespace Datasheets2.Search
                 try
                 {
                     await provider.SearchAsync(query, ct);
+
+                    // Artificial delay to give the user time to react
+                    // (We may not need to start searching the next provider yet)
+                    await Task.Delay(500, ct);
                 }
                 finally
                 {
