@@ -126,7 +126,7 @@ namespace Datasheets2.Widgets
 
         public void BeginSearch(string query)
         {
-            if (!App.Current.AllowOnlineSearch)
+            if (!Settings.AllowOnlineSearch)
                 return;
 
             if (IsSearching)
@@ -271,9 +271,8 @@ namespace Datasheets2.Widgets
 
                 // Shell open the file
                 // TODO: This may be potentially dangerous as the file comes from the internet.
-                // Windows SHOULD honour the .pdf extension and open in Adobe Reader or equivalent.
                 string ext = System.IO.Path.GetExtension(pdffile).ToLowerInvariant();
-                if (ext == ".pdf")
+                if (Settings.AllowedPreviewTypes.Contains(ext))
                 {
                     ShellOperation.ShellExecute(pdffile);
                 }
@@ -292,7 +291,7 @@ namespace Datasheets2.Widgets
         {
             try
             {
-                string destfile = System.IO.Path.Combine(App.Current.DocumentsDir, item.Filename);
+                string destfile = System.IO.Path.Combine(Settings.DocumentsDir, item.Filename);
 
                 string tmpfile;
                 if (!temporaryFileMap.TryGetValue(item, out tmpfile))

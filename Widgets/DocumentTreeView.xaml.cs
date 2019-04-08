@@ -249,7 +249,7 @@ namespace Datasheets2.Widgets
         private void miOpenFolder_Activate(object sender, RoutedEventArgs e)
         {
             // Open the documents library in explorer
-            ShellOperation.ShellOpenFolder(App.Current.DocumentsDir);
+            ShellOperation.ShellOpenFolder(Settings.DocumentsDir);
         }
 
         private void TreeViewItem_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
@@ -363,11 +363,11 @@ namespace Datasheets2.Widgets
                 //switch (operation)
                 //{
                 //    case DragDropEffects.Copy:
-                //        dropText.Text = $"Copy {desc} to {App.Current.DocumentsDir}";
+                //        dropText.Text = $"Copy {desc} to {Settings.DocumentsDir}";
                 //        break;
 
                 //    case DragDropEffects.Move:
-                //        dropText.Text = $"Move {desc} to {App.Current.DocumentsDir}";
+                //        dropText.Text = $"Move {desc} to {Settings.DocumentsDir}";
                 //        break;
 
                 //    case DragDropEffects.Link:
@@ -469,7 +469,7 @@ namespace Datasheets2.Widgets
                 return;
 
             // Default to the library root
-            var destdir = App.Current.DocumentsDir;
+            var destdir = Settings.DocumentsDir;
 
             // If dropped onto a folder, that's where the file should go
             var currentItem = (IItem)tree.SelectedItem;
@@ -480,7 +480,7 @@ namespace Datasheets2.Widgets
                     destdir = currentItem.FilePath;
 
                     // Sanity check - don't want the file to end up somewhere outside the library!
-                    if (!System.IO.Path.GetFullPath(destdir).StartsWith(App.Current.DocumentsDir))
+                    if (!System.IO.Path.GetFullPath(destdir).StartsWith(Settings.DocumentsDir))
                         throw new InvalidOperationException($"Unexpected destination: {destdir}");
                 }
             }

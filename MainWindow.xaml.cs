@@ -24,9 +24,6 @@ namespace Datasheets2
     /// </summary>
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
-        //private string[] SUPPORTED_FILE_EXTS = { ".pdf", ".doc", ".docx" };
-        private string[] SUPPORTED_FILE_EXTS = null; // Support all filetypes
-
         public Database Database { get { return App.Current.Database; } }
 
         enum State { TreeView, Search };
@@ -44,6 +41,10 @@ namespace Datasheets2
             Closing += MainWindow_Closing;
 
             search.Closed += Search_Closed;
+
+            // Hide search button if online searching is disabled
+            btnSearch.Visibility = (Settings.AllowOnlineSearch) ?
+                Visibility.Visible : Visibility.Collapsed;
         }
 
         private void SetupKeyCommands()
@@ -91,11 +92,7 @@ namespace Datasheets2
 
             Database.PropertyChanged += Database_PropertyChanged;
 
-            await Database.LoadAsync(App.Current.DocumentsDir);
-
-            // Hide search button if not allowed
-            btnSearch.Visibility = (App.Current.AllowOnlineSearch) ?
-                Visibility.Visible : Visibility.Collapsed;
+            await Database.LoadAsync(Settings.DocumentsDir);
 
             txtSearchBox.Focus();
         }
@@ -224,7 +221,7 @@ namespace Datasheets2
 
         private void StartSearch()
         {
-            if (!App.Current.AllowOnlineSearch)
+            if (!Settings.AllowOnlineSearch)
                 return;
 
             try
@@ -244,7 +241,7 @@ namespace Datasheets2
 
         private void CancelSearch()
         {
-            if (!App.Current.AllowOnlineSearch)
+            if (!Settings.AllowOnlineSearch)
                 return;
 
             try

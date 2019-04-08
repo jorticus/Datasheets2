@@ -248,7 +248,10 @@ namespace Datasheets2.Models
             // Hacky way of creating async directory query using the Thread Pool
             return Task.Run(() =>
             {
-                return (IEnumerable<string>)Directory.GetDirectories(path).ToList();
+                return (IEnumerable<string>)
+                    Directory.GetDirectories(path)
+                    .Where(p => FilterPath(p, isFile: false))
+                    .ToList();
             });
         }
 
@@ -256,8 +259,44 @@ namespace Datasheets2.Models
         {
             return Task.Run(() =>
             {
-                return (IEnumerable<string>)Directory.GetFiles(path).ToList();
+                return (IEnumerable<string>)
+                    Directory.GetFiles(path)
+                    .Where(p => FilterPath(p, isFile: true))
+                    .ToList();
             });
+        }
+
+        private static bool FilterPath(string path, bool isFile)
+        {
+            string fname = (isFile) ? Path.GetFileName(path) : null;
+
+            var incl = Settings.IncludeGlob;
+            if (incl != null && isFile)
+            {
+                // Find the first matching glob pattern that matches this path
+                // TODO: O(nm) operation (n=number of files, m=number of glob patterns)
+                bool match = incl.FirstOrDefault(glob =>
+                    (isFile && glob.IsMatch(fname)) ||
+                    glob.IsMatch(path)
+                ) != null;
+
+                if (!match)
+                    return false; // Don't include
+            }
+
+            var excl = Settings.ExcludeGlob;
+            if (excl != null)
+            {
+                bool match = excl.FirstOrDefault(glob =>
+                    (isFile && glob.IsMatch(fname)) ||
+                    glob.IsMatch(path)
+                ) != null;
+
+                if (match)
+                    return false; // Don't include
+            }
+
+            return true; // Include
         }
 
         /// <summary>
@@ -341,24 +380,30 @@ namespace Datasheets2.Models
 
         private void FsWatcher_Created(object sender, FileSystemEventArgs e)
         {
-            IItem item;
+            IItem item = null;
             var newPath = e.FullPath;
             if (System.IO.File.Exists(newPath))
             {
-                item = new Document(newPath);
+                if (FilterPath(newPath, isFile: true))
+                {
+                    item = new Document(newPath);
+                }
             }
             else
             {
                 item = new Folder(newPath);
             }
 
-            App.Current.Dispatcher.Invoke(async () =>
+            if (item != null)
             {
-                InsertItem(item);
+                App.Current.Dispatcher.Invoke(async () =>
+                {
+                    InsertItem(item);
 
-                if (item is Folder)
-                    await (item as Folder).LoadAsync();
-            });
+                    if (item is Folder)
+                        await (item as Folder).LoadAsync();
+                });
+            }
         }
 
         private void FsWatcher_Changed(object sender, FileSystemEventArgs e)

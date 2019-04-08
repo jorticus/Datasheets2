@@ -39,6 +39,9 @@
     <ApplicationIcon>Resources\icon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="DotNet.Glob, Version=3.0.5.0, Culture=neutral, PublicKeyToken=b68cc888b4f632d1, processorArchitecture=MSIL">
+      <HintPath>packages\DotNet.Glob.3.0.5\lib\net45\DotNet.Glob.dll</HintPath>
+    </Reference>
     <Reference Include="HtmlAgilityPack, Version=1.6.13.0, Culture=neutral, PublicKeyToken=bd319b19eaf3b43a, processorArchitecture=MSIL">
       <HintPath>packages\HtmlAgilityPack.1.6.13\lib\Net45\HtmlAgilityPack.dll</HintPath>
     </Reference>
@@ -80,6 +83,7 @@
     <Compile Include="Search\DatasheetCatalog.cs" />
     <Compile Include="Search\ISearchProvider.cs" />
     <Compile Include="Search\ISearchResult.cs" />
+    <Compile Include="Settings.cs" />
     <Compile Include="ShellOperation.cs" />
     <Compile Include="UIHelper.cs" />
     <Compile Include="WebUtil.cs" />

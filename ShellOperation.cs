@@ -294,5 +294,32 @@ namespace Datasheets2
                 }
             }
         }
+
+        /// <summary>
+        /// Returns true if the file/path matches all configured filetype filters
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns></returns>
+        public static bool DoesPathMatchFilter(string path)
+        {
+            var incl = Settings.IncludeFilter;
+            if (incl != null)
+            {
+                //if (incl.)
+            }
+
+            var excl = Settings.ExcludeFilter;
+            if (excl != null)
+            {
+
+            }
+
+            return true;
+        }
+
+        public static bool IsPathExcluded(string path)
+        {
+            return false;
+        }
     }
 }

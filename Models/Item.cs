@@ -37,7 +37,14 @@ namespace Datasheets2.Models
 
         public Item(string filePath, string label = null)
         {
-            this._label = label ?? System.IO.Path.GetFileNameWithoutExtension(filePath);
+            this._label = label;
+            if (_label == null)
+            {
+                _label = (Settings.ShowExtension ?
+                    System.IO.Path.GetFileName(filePath) :
+                    System.IO.Path.GetFileNameWithoutExtension(filePath));
+            }
+
             this.filePath = filePath;
         }
 

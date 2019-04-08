@@ -1,7 +1,6 @@
 ﻿using Datasheets2.Models;
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Data;
 using System.Linq;
 using System.Text;
@@ -26,27 +25,6 @@ namespace Datasheets2
 
         ApiKeyManager apiKeys;
         public ApiKeyManager ApiKeys { get { return apiKeys; } }
-
-        /// <summary>
-        /// The documents root to display.
-        /// Can be set through Datasheets.exe.config.
-        /// Defaults to the current directory.
-        /// </summary>
-        public string DocumentsDir
-        {
-            get
-            {
-                var dir = ConfigurationManager.AppSettings.Get("DocumentsDir");
-                if (!String.IsNullOrWhiteSpace(dir) && System.IO.File.Exists(dir))
-                    return dir;
-                return System.IO.Directory.GetCurrentDirectory();
-            }
-        }
-
-        /// <summary>
-        /// Whether online search should be allowed
-        /// </summary>
-        public bool AllowOnlineSearch => ConfigurationManager.AppSettings.Get("AllowOnlineSearch")?.ToLowerInvariant() == "true"; 
 
         public App()
         {
