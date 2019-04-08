@@ -28,14 +28,14 @@ namespace Datasheets2
         /// Whether online search should be allowed
         /// </summary>
         public static bool AllowOnlineSearch => 
-            ParseBool(ConfigurationManager.AppSettings.Get("AllowOnlineSearch"));
+            ParseBool(ConfigurationManager.AppSettings.Get("AllowOnlineSearch"), defaultValue: true);
 
         /// <summary>
         /// Whether the file extension should be shown
         /// </summary>
         public static bool ShowExtension => _showExtension.Value;
         private static Lazy<bool> _showExtension = new Lazy<bool>(
-            () => ParseBool(ConfigurationManager.AppSettings.Get("ShowExtension")));
+            () => ParseBool(ConfigurationManager.AppSettings.Get("ShowExtension"), defaultValue: false));
 
         /// <summary>
         /// File types that can be previewed from the internet.
@@ -69,14 +69,16 @@ namespace Datasheets2
 
         #region Helpers
 
-        private static bool ParseBool(string s)
+        private static bool ParseBool(string s, bool defaultValue)
         {
             s = s?.ToLowerInvariant();
             if (s == "false")
                 return false;
             if (s == "true")
                 return true;
-            throw new InvalidCastException($"Value is not a valid boolean (was '{s}')");
+
+            return defaultValue;
+            //throw new InvalidCastException($"Value is not a valid boolean (was '{s}')");
         }
 
         private static List<string> ParseList(string s, params char[] separator)
