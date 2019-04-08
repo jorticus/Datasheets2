@@ -93,6 +93,10 @@ namespace Datasheets2
 
             await Database.LoadAsync(App.Current.DocumentsDir);
 
+            // Hide search button if not allowed
+            btnSearch.Visibility = (App.Current.AllowOnlineSearch) ?
+                Visibility.Visible : Visibility.Collapsed;
+
             txtSearchBox.Focus();
         }
 
@@ -220,6 +224,9 @@ namespace Datasheets2
 
         private void StartSearch()
         {
+            if (!App.Current.AllowOnlineSearch)
+                return;
+
             try
             {
                 btnSearch.Content = "Cancel";
@@ -237,6 +244,9 @@ namespace Datasheets2
 
         private void CancelSearch()
         {
+            if (!App.Current.AllowOnlineSearch)
+                return;
+
             try
             {
                 btnSearch.Content = "Search";

@@ -126,6 +126,9 @@ namespace Datasheets2.Widgets
 
         public void BeginSearch(string query)
         {
+            if (!App.Current.AllowOnlineSearch)
+                return;
+
             if (IsSearching)
             {
                 throw new InvalidOperationException("Search in progress");
