@@ -59,8 +59,8 @@ namespace Datasheets2.Search
                 // Search secondary providers
                 OnStatusChanged("Searching DatasheetCatalog,AllDatasheet");
                 await Task.WhenAll(
-                    ProviderSearchAsync<Search.DatasheetCatalog>(query, ct),
-                    ProviderSearchAsync<Search.AllDatasheet>(query, ct)
+                    ProviderSearchAsync<Search.DatasheetCatalog>(query, ct)
+                    //,ProviderSearchAsync<Search.AllDatasheet>(query, ct)    // BROKEN
                 );
 
                 OnStatusChanged("Done!");
