@@ -164,8 +164,8 @@ namespace Datasheets2.Models
             }
         }
 
-        public Folder(string filePath) :
-            base(filePath)
+        public Folder(string filePath, IItem parent) :
+            base(filePath, parent)
         {
             this.Items = new FilteredObservableCollection<IItem>();
             this.fsWatcher = null;
@@ -180,7 +180,7 @@ namespace Datasheets2.Models
         /// <param name="other"></param>
         /// <param name="items"></param>
         public Folder(Folder other, IEnumerable<IItem> items)
-            : base(other.FilePath, label:other.Label)
+            : base(other.FilePath, other.Parent, label:other.Label)
         {
             this.Items = new FilteredObservableCollection<IItem>(items);
         }
@@ -214,7 +214,7 @@ namespace Datasheets2.Models
             //    IsExpanded = true;
         }
 
-        protected static IEnumerable<IItem> ScanPath(string path)
+        protected static IEnumerable<IItem> ScanPath(string path, IItem parent)
         {
             if (!Directory.Exists(path))
                 throw new FileNotFoundException($"Could not find path '{path}'");
@@ -222,7 +222,7 @@ namespace Datasheets2.Models
             var directories = Directory.GetDirectories(path);
             foreach (var dirPath in directories)
             {
-                var folder = new Folder(dirPath);
+                var folder = new Folder(dirPath, parent);
                 folder.Load();
                 yield return folder;
             }
@@ -230,14 +230,14 @@ namespace Datasheets2.Models
             var files = Directory.GetFiles(path);
             foreach (var filePath in files)
             {
-                var doc = new Document(filePath);
+                var doc = new Document(filePath, parent);
                 yield return doc;
             }
         }
 
         protected void Load()
         {
-            foreach (var item in ScanPath(FilePath))
+            foreach (var item in ScanPath(FilePath, parent: this))
             {
                 Items.Add(item);
             }
@@ -386,12 +386,12 @@ namespace Datasheets2.Models
             {
                 if (FilterPath(newPath, isFile: true))
                 {
-                    item = new Document(newPath);
+                    item = new Document(newPath, parent: this);
                 }
             }
             else
             {
-                item = new Folder(newPath);
+                item = new Folder(newPath, parent: this);
             }
 
             if (item != null)
@@ -484,7 +484,7 @@ namespace Datasheets2.Models
             var addedFolders = fsFolderPaths.Except(dbFolderPaths);
             foreach (var dirPath in addedFolders)
             {
-                var folder = new Folder(dirPath);
+                var folder = new Folder(dirPath, parent: this);
                 this.InsertItem(folder);
                 await Task.Yield();
             }
@@ -526,7 +526,7 @@ namespace Datasheets2.Models
             var addedDocuments = fsDocumentPaths.Except(dbDocumentPaths);
             foreach (var filePath in addedDocuments)
             {
-                var doc = new Document(filePath);
+                var doc = new Document(filePath, parent: this);
                 this.InsertItem(doc);
 
                 // Allow UI tasks to run occasionally

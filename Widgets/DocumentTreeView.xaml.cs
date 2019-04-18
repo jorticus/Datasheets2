@@ -112,9 +112,44 @@ namespace Datasheets2.Widgets
             return null;
         }
 
+        private TreeViewItem GetRootContainerForItem(IItem item)
+        {
+            TreeViewItem tv;
+            do
+            {
+                tv = (TreeViewItem)tree.ItemContainerGenerator.ContainerFromItem(item);
+                if (tv == null)
+                {
+                    item = item.Parent;
+                }
+            } while (tv == null && item.Parent != null);
+
+            return tv;
+        }
+
+        private TreeViewItem GetContainerForItem(IItem item)
+        {
+            if (item == null)
+                return null;
+
+            // The ItemContainerGenerator will only find items in the root
+            TreeViewItem container = (TreeViewItem)tree.ItemContainerGenerator.ContainerFromItem(item);
+            if (container == null && item.Parent != null)
+            {
+                // Item not found in this container. Go up the item tree until we find the root
+                container = GetContainerForItem(item.Parent);
+
+                // Now go back down the tree using the ItemContainerGenerator found at each level to match the respective item
+                container = (TreeViewItem)container.ItemContainerGenerator.ContainerFromItem(item);
+            }
+
+            return container;
+        }
+
         public void UnfocusTree()
         {
-            var currentItem = (TreeViewItem)tree.ItemContainerGenerator.ContainerFromItem(tree.SelectedItem);
+            // The selected item should be the first item in the tree here...
+            var currentItem = GetContainerForItem(tree.SelectedItem as IItem);
             if (currentItem != null)
             {
                 currentItem.IsSelected = false;
@@ -125,8 +160,11 @@ namespace Datasheets2.Widgets
         {
             get
             {
-                var currentItem = (TreeViewItem)tree.ItemContainerGenerator.ContainerFromItem(tree.SelectedItem);
-                var firstItem = (TreeViewItem)tree.ItemContainerGenerator.ContainerFromIndex(0);
+                if (tree.Items.Count == 0)
+                    return false;
+
+                var currentItem = tree.SelectedItem;
+                var firstItem = tree.Items[0];
                 return (currentItem == firstItem);
             }
         }
@@ -173,7 +211,7 @@ namespace Datasheets2.Widgets
 
         //private void scrollTimer_Callback(object sender, EventArgs e)
         //{
-        //    var hit = (TreeViewItem)tree.ItemContainerGenerator.ContainerFromItem(tree.SelectedItem);
+        //    var hit = GetTreeViewItemForObject(tree.SelectedItem);
         //    if (hit != null)
         //    {
         //        int idx = tree.ItemContainerGenerator.IndexFromContainer(hit);
@@ -384,7 +422,7 @@ namespace Datasheets2.Widgets
             // Capture selected item before drag was initiated
             if (!_dragInProgress && _selectionBeforeDrag != null)
             {
-                _selectionBeforeDrag = (TreeViewItem)tree.ItemContainerGenerator.ContainerFromItem(tree.SelectedItem);
+                _selectionBeforeDrag = GetContainerForItem(tree.SelectedItem as IItem);
             }
             _dragInProgress = true;
 
@@ -400,15 +438,26 @@ namespace Datasheets2.Widgets
                 {
                     var pos = e.GetPosition(tree);
                     var treeViewItem = GetTreeViewItemAtPoint(pos);
-                    if (treeViewItem != null && treeViewItem.DataContext is Folder)
+                    if (treeViewItem != null && treeViewItem.DataContext != null)
                     {
-                        // Select/Highlight folders
-                        treeViewItem.IsSelected = true;
+                        var item = treeViewItem.DataContext as IItem;
+                        if (!(item is Folder) && (item.Parent != null))
+                        {
+                            // Get the parent folder if the item is a file, and select that instead
+                            item = item.Parent;
+                            treeViewItem = GetContainerForItem(item);
+                        }
+
+                        if (item is Folder)
+                        {
+                            // Select/Highlight folders
+                            treeViewItem.IsSelected = true;
+                        }
                     }
                     else
                     {
                         // Don't select anything if dragging over a file or empty space
-                        var currentItem = (TreeViewItem)tree.ItemContainerGenerator.ContainerFromItem(tree.SelectedItem);
+                        var currentItem = GetContainerForItem(tree.SelectedItem as IItem);
                         if (currentItem != null)
                             currentItem.IsSelected = false;
                     }

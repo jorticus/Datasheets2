@@ -9,8 +9,8 @@ namespace Datasheets2.Models
 {
     public class Document : Item
     {
-        public Document(string filePath, string label = null)
-            : base(filePath, label)
+        public Document(string filePath,IItem parent, string label = null)
+            : base(filePath, parent, label)
         {
             //this.Tags = new List<Tag>
             //{

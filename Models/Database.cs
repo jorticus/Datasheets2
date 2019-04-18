@@ -20,7 +20,7 @@ namespace Datasheets2.Models
 
         public async Task LoadAsync(string path)
         {
-            Root = new Folder(path);
+            Root = new Folder(path, parent: null);
             await Root.LoadAsync();
             OnPropertyChanged("Items");
         }

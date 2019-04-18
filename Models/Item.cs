@@ -16,6 +16,8 @@ namespace Datasheets2.Models
 {
     public interface IItem
     {
+        IItem Parent { get; }
+
         string FilePath { get; }
 
         string Label { get; set; }
@@ -35,7 +37,9 @@ namespace Datasheets2.Models
         private bool _isVisible = true;
         private string filePath;
 
-        public Item(string filePath, string label = null)
+        public IItem Parent { get; private set; }
+
+        public Item(string filePath, IItem parent, string label = null)
         {
             this._label = label;
             if (_label == null)
@@ -46,6 +50,7 @@ namespace Datasheets2.Models
             }
 
             this.filePath = filePath;
+            this.Parent = parent;
         }
 
         public string FilePath { get { return filePath; } }
