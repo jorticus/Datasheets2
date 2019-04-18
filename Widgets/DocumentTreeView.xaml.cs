@@ -16,6 +16,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 
 namespace Datasheets2.Widgets
 {
@@ -24,17 +25,24 @@ namespace Datasheets2.Widgets
     /// </summary>
     public partial class DocumentTreeView : UserControl
     {
-        //private DispatcherTimer treeScrollTimer;
+        private DispatcherTimer treeScrollTimer;
+        private ScrollViewer treeScrollViewer;
 
         public DocumentTreeView()
         {
             InitializeComponent();
 
 
-            //treeScrollTimer = new DispatcherTimer();
-            //treeScrollTimer.Interval = TimeSpan.FromMilliseconds(500);
-            //treeScrollTimer.Tick += scrollTimer_Callback;
+            treeScrollTimer = new DispatcherTimer();
+            treeScrollTimer.Interval = TimeSpan.FromMilliseconds(500);
+            treeScrollTimer.Tick += scrollTimer_Callback;
 
+            Loaded += DocumentTreeView_Loaded;
+        }
+
+        private void DocumentTreeView_Loaded(object sender, RoutedEventArgs e)
+        {
+            //treeScrollViewer.VerticalOffset;
         }
 
 
@@ -146,6 +154,42 @@ namespace Datasheets2.Widgets
             return container;
         }
 
+        private TreeViewItem GetContainerAbove_old(IItem item)
+        {
+            if (item == null)
+                return null;
+            if (item.Parent == null)
+                return null; //TODO: We actually want to handle this
+
+            TreeViewItem parentContainer = GetContainerForItem(item.Parent);
+            if (parentContainer == null)
+                return null;
+            TreeViewItem itemContainer = (TreeViewItem)parentContainer.ItemContainerGenerator.ContainerFromItem(item);
+            int index = parentContainer.ItemContainerGenerator.IndexFromContainer(itemContainer);
+            if (index < 0)
+                return null;
+
+            if (index == 0)
+            {
+                // At top of list, need to go up a level
+                return GetContainerForItem(item.Parent);
+            }
+            else
+            {
+                // Otherwise get previous item in current level
+                return (TreeViewItem)parentContainer.ItemContainerGenerator.ContainerFromIndex(index - 1);
+            }
+        }
+
+        private TreeViewItem GetContainerAbove(IItem item)
+        {
+            var container = GetContainerForItem(item);
+            if (container == null)
+                return null;
+
+            return null;
+        }
+
         public void UnfocusTree()
         {
             // The selected item should be the first item in the tree here...
@@ -209,19 +253,33 @@ namespace Datasheets2.Widgets
         }
 
 
-        //private void scrollTimer_Callback(object sender, EventArgs e)
-        //{
-        //    var hit = GetTreeViewItemForObject(tree.SelectedItem);
-        //    if (hit != null)
-        //    {
-        //        int idx = tree.ItemContainerGenerator.IndexFromContainer(hit);
-        //        if (idx > 0)
-        //            hit = (TreeViewItem)tree.ItemContainerGenerator.ContainerFromIndex(idx - 1);
+        private void scrollTimer_Callback(object sender, EventArgs e)
+        {
+            if (this.SelectedItem != null)
+            {
+                tree.BringIntoView(new Rect {
+                    X = 0, Y = 0
+                });
+                //var up = (tree.PredictFocus(FocusNavigationDirection.Up) as Control);
+                //if (up != null)
+                //    up.BringIntoView();
 
-        //        if (hit != null)
-        //            hit.IsSelected = true;
-        //    }
-        //}
+                //var hit = GetContainerAbove(this.SelectedItem as IItem);
+                //if (hit != null)
+                //    hit.IsSelected = true;
+
+                //var hit = GetContainerForItem(tree.SelectedItem as IItem);
+                //if (hit != null)
+                //{
+                //    int idx = tree.ItemContainerGenerator.IndexFromContainer(hit);
+                //    if (idx > 0)
+                //        hit = (TreeViewItem)tree.ItemContainerGenerator.ContainerFromIndex(idx - 1);
+
+                //    if (hit != null)
+                //        hit.IsSelected = true;
+                //}
+            }
+        }
 
         private TreeViewItem GetTreeViewItemAtPoint(Point pos)
         {
@@ -246,18 +304,18 @@ namespace Datasheets2.Widgets
 
                 var hit = GetTreeViewItemAtPoint(pos);
 
-                //if (pos.Y < 6)
-                //{
-                //    treeScrollTimer.Start();
-                //}
-                //else if (pos.Y > tree.Height - 6)
-                //{
-                //    // TODO
-                //}
-                //else
-                //{
-                //    treeScrollTimer.Stop();
-                //}
+                if (pos.Y < 6)
+                {
+                    treeScrollTimer.Start();
+                }
+                else if (pos.Y > tree.Height - 6)
+                {
+                    // TODO
+                }
+                else
+                {
+                    treeScrollTimer.Stop();
+                }
 
                 if (hit != null)
                 {
@@ -268,16 +326,16 @@ namespace Datasheets2.Widgets
 
         private void tree_PreviewMouseUp(object sender, MouseButtonEventArgs e)
         {
-            //if (e.LeftButton == MouseButtonState.Released)
-            //{
-            //    treeScrollTimer.Stop();
-            //}
-            //Mouse.Capture(null);
+            if (e.LeftButton == MouseButtonState.Released)
+            {
+                treeScrollTimer.Stop();
+            }
+            Mouse.Capture(null);
         }
 
         private void tree_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
-            //((IInputElement)sender).CaptureMouse();
+            ((IInputElement)sender).CaptureMouse();
         }
 
         #region Context Menu Actions
