@@ -77,7 +77,12 @@ namespace Datasheets2
 
             ApiKey key;
             if (!apiKeys.TryGetValue(name, out key))
-                throw new KeyNotFoundException($"No API keys available for {name}. Ensure you've added it to {filename}");
+            {
+                // If not defined in ApiKeys.xml, try App.config...
+                key = Settings.GetApiKey(name);
+                if (key == null)
+                    throw new KeyNotFoundException($"No API keys available for {name}. Ensure you've added it to {filename}");
+            }
 
             return key;
         }

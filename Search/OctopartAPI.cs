@@ -26,6 +26,11 @@ namespace Datasheets2.Search
         public async Task SearchAsync(string query, CancellationToken ct)
         {
             var apiKey = App.Current.ApiKeys.GetKey("Octopart");
+            if (apiKey == null)
+            {
+                Debug.WriteLine("No API key available for Octopart. Searching disabled!");
+                return; // No API key, ignore Octopart search
+            }
 
             // https://octopart.com/api/docs/v3/overview#datasheets
             query = Uri.EscapeDataString(query);

@@ -28,7 +28,7 @@ namespace Datasheets2
         /// Whether online search should be allowed
         /// </summary>
         public static bool AllowOnlineSearch => 
-            ParseBool(ConfigurationManager.AppSettings.Get("AllowOnlineSearch"), defaultValue: true);
+            ParseBool(ConfigurationManager.AppSettings.Get("AllowOnlineSearch"), defaultValue: false);
 
         /// <summary>
         /// Whether the file extension should be shown
@@ -66,6 +66,39 @@ namespace Datasheets2
         public static List<Glob> ExcludeGlob => _excludeGlob.Value;
         private static Lazy<List<Glob>> _excludeGlob = new Lazy<List<Glob>>(() =>
             ExcludeFilter?.Select(filter => Glob.Parse(filter))?.ToList());
+
+        /// <summary>
+        /// If set, specifies which online search providers are used.
+        /// If not set, online search is disabled.
+        /// </summary>
+        public static List<string> SearchProviders => _searchProviders.Value;
+        private static Lazy<List<string>> _searchProviders = new Lazy<List<string>>(
+            () => ParseList(ConfigurationManager.AppSettings.Get("SearchProviders"), ',') ?? new List<string>());
+
+        /// <summary>
+        /// Pull API keys from the application config file, as fallback
+        /// </summary>
+        /// <param name="name">The API key required</param>
+        /// <returns></returns>
+        public static ApiKey GetApiKey(string name)
+        {
+            switch (name)
+            {
+                case "Octopart":
+                    string key = ConfigurationManager.AppSettings.Get("OctopartApiKey");
+                    if (!String.IsNullOrWhiteSpace(key))
+                    {
+                        return new ApiKey
+                        {
+                            Name = "Octopart",
+                            SecretKey = key
+                        };
+                    }
+                    break;
+            }
+
+            return null;
+        }
 
         #region Helpers
 
